@@ -1073,6 +1073,7 @@ function beginTracking() {
   S.lastStepMs    = Date.now(); // prevent immediate count on start
   S.stepActive    = false;
   S.stepPulse     = 0;
+  S.stepGoingUp   = false;
 
   // Detection state
   D.prevFrame    = null;
@@ -1080,6 +1081,7 @@ function beginTracking() {
   D.adaptThresh  = 15;
   D.motionSignal = 0;
   D.belowSignal  = 0;
+  D.aboveSignal  = 0;
 
   show('s-track');
 
@@ -1213,6 +1215,21 @@ function runLoop() {
         }
         D.belowSignal = (belowCnt > 0) ? belowMot / belowCnt : 0;
 
+        // Above-line signal: used to determine crossing direction (up vs. down).
+        // aboveY1 is the last row to include before the detection band starts.
+        const aboveY1 = Math.max(0, anaLY - band - 1);
+        let aboveMot = 0, aboveCnt = 0;
+        for (let y = 0; y <= aboveY1; y++) {
+          for (let x = 0; x < AW; x++) {
+            const i = (y*AW+x)*4;
+            aboveMot += Math.abs(curr[i]   - D.prevFrame[i])
+                      + Math.abs(curr[i+1] - D.prevFrame[i+1])
+                      + Math.abs(curr[i+2] - D.prevFrame[i+2]);
+            aboveCnt++;
+          }
+        }
+        D.aboveSignal = (aboveCnt > 0) ? aboveMot / aboveCnt : 0;
+
         // Adaptive threshold (skip if too much global shake)
         if (globalMot < 30) {
           D.motionBuf.push(D.motionSignal);
@@ -1220,14 +1237,17 @@ function runLoop() {
           const avg = D.motionBuf.reduce((a,b)=>a+b,0) / D.motionBuf.length;
           D.adaptThresh = Math.max(MIN_THRESH, avg * C.sensitivity);
 
-          // State machine: idle↑active↓idle = 1 step
-          // Only count when both feet have cleared the line (below-line motion is quiet)
+          // State machine: idle↑active↓idle = 1 step.
+          // When step activates, snapshot direction: more motion below the line means
+          // the body is approaching from below (going UP); more above means going DOWN.
+          // Only finalise a count when going UP, both feet have cleared, and below is quiet.
           const now = Date.now();
           if (!S.stepActive && D.motionSignal > D.adaptThresh && now - S.lastStepMs > COOLDOWN_MS) {
-            S.stepActive = true;
+            S.stepActive   = true;
+            S.stepGoingUp  = D.belowSignal > D.aboveSignal;
           } else if (S.stepActive && D.motionSignal < D.adaptThresh * 0.45) {
             S.stepActive = false;
-            if (D.belowSignal < MIN_THRESH * BELOW_THRESH_FACTOR) {
+            if (S.stepGoingUp && D.belowSignal < MIN_THRESH * BELOW_THRESH_FACTOR) {
               countStep();
             }
           }
@@ -1236,7 +1256,7 @@ function runLoop() {
       D.prevFrame = new Uint8ClampedArray(curr);
     }
 
-    // ── 3. Recording canvas: camera + HUD only (no CV lines) ──
+    // ── 3. Recording canvas: camera + HUD only — NO detection line, NO CV overlays ──
     if (C.recEnabled && recCtx) {
       recCtx.drawImage(camVid, 0, 0, W, H);
       drawHUD(W, H, recCtx);
@@ -1251,7 +1271,7 @@ function runLoop() {
       }
     }
 
-    // ── 4. Detection line (live display only, not in recording) ──
+    // ── 4. Detection line drawn on mainCtx ONLY — never touches recCtx ──
     if (S.stepPulse > 0) S.stepPulse = Math.max(0, S.stepPulse - 0.04);
     const ly = D.lineY * H;
     const glow = 6 + S.stepPulse * 28;

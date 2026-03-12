@@ -12,7 +12,9 @@ Open the link on your phone — that's it. No install, no build step, no account
 
 - **Real-Time Step Detection** — Uses adaptive motion detection at a configurable horizontal line across the video feed to count steps automatically.
 - **Manual Line Positioning** — Before tracking begins, drag the detection line to your desired height so the camera captures your full body crossing it. Start tracking whenever you are ready.
+- **Direction-Aware Counting** — When motion at the detection line activates, the app snapshots whether there is more motion *below* the line (body approaching from below = going **up**) or *above* (body approaching from above = going **down**). Only upward crossings are counted; descending passes are silently ignored.
 - **Duplicate-Free Counting** — A step is only registered when the band of motion at the line clears *and* the area below the line is also quiet, meaning both feet have fully crossed and your body is completely above the line.
+- **Clean Recorded Video** — The detection line and all CV overlays are drawn exclusively on the live-view canvas; the recorded video contains only the camera feed and the HUD.
 - **Manual Adjustments** — Drag the detection line to reposition it during tracking, tap to add or undo steps, and adjust sensitivity from 0.6× to 3.5×.
 - **Session Timer & HUD** — Set a time limit and target step count. The on-screen HUD shows remaining time, steps/min rate, ETA, and a progress bar.
 - **Time-Lapse Recording** — Optionally record your session as a sped-up video (WebM) with the HUD overlay included.
@@ -26,7 +28,7 @@ Open the link on your phone — that's it. No install, no build step, no account
 
 1. **Setup** — Enter a session name, target step count, time limit, and sensitivity.
 2. **Position Line** — Point the camera at the staircase so your full body is visible. Drag the detection line to your mid-body height (roughly waist level). When the line is where you want it, tap **START TRACKING**.
-3. **Track** — The app renders the live camera feed on a canvas with a detection line. Motion in a band around the line is compared frame-by-frame; a step is counted when motion at the line rises above an adaptive threshold, then falls, *and* the area below the line is also quiet — confirming both feet have crossed.
+3. **Track** — The app renders the live camera feed on a canvas with a detection line (CV overlays are never written to the recorded video). Motion in a band around the line is compared frame-by-frame. When motion rises above an adaptive threshold, the app snapshots whether the body is approaching from *below* the line (going **up**) or from *above* (going **down**). A step is only counted when: the crossing was upward, motion at the line then falls, *and* the area below the line is also quiet — confirming both feet have fully cleared the line.
 4. **Review** — When time runs out or you reach your goal, see your results (steps, completion %, time used, steps/min) and download the time-lapse video if recorded.
 
 ### Computer Vision Details
@@ -40,8 +42,10 @@ Open the link on your phone — that's it. No install, no build step, no account
 | Cooldown between steps | 700 ms |
 | Shake rejection | Global motion > 30 is ignored |
 | Below-line threshold | Average pixel motion < 20 (`MIN_THRESH` × `BELOW_THRESH_FACTOR`) |
+| Direction detection | `D.belowSignal > D.aboveSignal` at step activation → going up |
+| Recorded video | Camera feed + HUD only; detection line and CV overlays excluded |
 
-The algorithm compares RGB pixel differences between consecutive frames within the detection band. An adaptive threshold is computed from a rolling average of recent motion values multiplied by the sensitivity factor. A state machine transitions from idle → active (motion above threshold) → counted (motion drops below 45% of threshold). A step is only finalised when the below-line region is also quiet (average pixel change < 20), ensuring both feet have fully crossed the line and preventing duplicate or triplicate counts. A 700 ms cooldown provides an additional guard against double-counting.
+The algorithm compares RGB pixel differences between consecutive frames within the detection band. An adaptive threshold is computed from a rolling average of recent motion values multiplied by the sensitivity factor. A state machine transitions from idle → active (motion above threshold) → counted (motion drops below 45% of threshold). When a step activates, the app also samples motion above the line (`D.aboveSignal`) and below the line (`D.belowSignal`): if the below region has more motion, the body is rising (going **up**) and `S.stepGoingUp` is set to `true`; otherwise the crossing is downward and the pending step is discarded. A step is only finalised when `S.stepGoingUp` is true *and* the below-line region is quiet (average pixel change < 20), ensuring both feet have crossed upward and preventing duplicate, triplicate, or descending counts. A 700 ms cooldown provides an additional guard.
 
 ## Browser Requirements
 
