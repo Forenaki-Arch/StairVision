@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <!-- Maskable icon: safe area is central 80% circle -->
+  <rect width="192" height="192" fill="#05080f"/>
+  <!-- Stair steps (centered, smaller for safe area) -->
+  <g stroke="#00ffc3" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="48,148 48,116 76,116 76,84 104,84 104,52 132,52 132,40"/>
+  </g>
+  <!-- Eye / vision symbol -->
+  <g transform="translate(96,96)" fill="none" stroke="#00ffc3" stroke-width="3">
+    <ellipse rx="26" ry="15" opacity="0.6"/>
+    <circle r="8" fill="#00ffc3" opacity="0.8"/>
+  </g>
+</svg>
