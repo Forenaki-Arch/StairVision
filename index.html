@@ -603,8 +603,8 @@ function renderHistory() {
       <div class="hist-card-title">${escapeHtml(s.name)}</div>
       <div class="hist-card-date">Started: ${escapeHtml(s.startedAt)} · Completed: ${escapeHtml(s.completedAt)}</div>
       <div class="hist-card-stats">
-        <div class="hist-stat"><span class="hist-stat-val">${s.steps}/${s.target}</span><span class="hist-stat-lbl">Steps</span></div>
-        <div class="hist-stat"><span class="hist-stat-val">${s.pct}%</span><span class="hist-stat-lbl">Done</span></div>
+        <div class="hist-stat"><span class="hist-stat-val">${Number(s.steps)||0}/${Number(s.target)||0}</span><span class="hist-stat-lbl">Steps</span></div>
+        <div class="hist-stat"><span class="hist-stat-val">${Number(s.pct)||0}%</span><span class="hist-stat-lbl">Done</span></div>
         <div class="hist-stat"><span class="hist-stat-val">${escapeHtml(s.time)}</span><span class="hist-stat-lbl">Time</span></div>
         <div class="hist-stat"><span class="hist-stat-val">${escapeHtml(s.rate)}</span><span class="hist-stat-lbl">Steps/min</span></div>
       </div>
