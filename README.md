@@ -11,8 +11,9 @@ Open the link on your phone — that's it. No install, no build step, no account
 ## Features
 
 - **Real-Time Step Detection** — Uses adaptive motion detection at a configurable horizontal line across the video feed to count steps automatically.
-- **Auto-Calibration** — Walk in front of the camera during a 7-second calibration phase and the app finds the optimal detection line position using center-of-mass analysis.
-- **Manual Adjustments** — Drag the detection line to reposition it, tap to add or undo steps, and adjust sensitivity from 0.6× to 3.5×.
+- **Manual Line Positioning** — Before tracking begins, drag the detection line to your desired height so the camera captures your full body crossing it. Start tracking whenever you are ready.
+- **Duplicate-Free Counting** — A step is only registered when the band of motion at the line clears *and* the area below the line is also quiet, meaning both feet have fully crossed and your body is completely above the line.
+- **Manual Adjustments** — Drag the detection line to reposition it during tracking, tap to add or undo steps, and adjust sensitivity from 0.6× to 3.5×.
 - **Session Timer & HUD** — Set a time limit and target step count. The on-screen HUD shows remaining time, steps/min rate, ETA, and a progress bar.
 - **Time-Lapse Recording** — Optionally record your session as a sped-up video (WebM) with the HUD overlay included.
 - **Milestone & Goal Sounds** — A tick sound plays on each step. A distinct chime plays every time you hit a progress milestone (default every 10%, adjustable in Settings). A triumphant fanfare plays when you reach your goal.
@@ -24,8 +25,8 @@ Open the link on your phone — that's it. No install, no build step, no account
 ## How It Works
 
 1. **Setup** — Enter a session name, target step count, time limit, and sensitivity.
-2. **Calibrate** — Point the camera at the staircase. Tap **Start Calibration** and walk 6–8 steps so the app detects where to place the detection line, or skip to set it manually.
-3. **Track** — The app renders the live camera feed on a canvas with a detection line. Motion in a band around the line is compared frame-by-frame; when motion rises above an adaptive threshold and then falls, a step is counted.
+2. **Position Line** — Point the camera at the staircase so your full body is visible. Drag the detection line to your mid-body height (roughly waist level). When the line is where you want it, tap **START TRACKING**.
+3. **Track** — The app renders the live camera feed on a canvas with a detection line. Motion in a band around the line is compared frame-by-frame; a step is counted when motion at the line rises above an adaptive threshold, then falls, *and* the area below the line is also quiet — confirming both feet have crossed.
 4. **Review** — When time runs out or you reach your goal, see your results (steps, completion %, time used, steps/min) and download the time-lapse video if recorded.
 
 ### Computer Vision Details
@@ -38,8 +39,9 @@ Open the link on your phone — that's it. No install, no build step, no account
 | Adaptive threshold buffer | 18-frame history |
 | Cooldown between steps | 700 ms |
 | Shake rejection | Global motion > 30 is ignored |
+| Below-line threshold | Average pixel motion < 20 (`MIN_THRESH` × `BELOW_THRESH_FACTOR`) |
 
-The algorithm compares RGB pixel differences between consecutive frames within the detection band. An adaptive threshold is computed from a rolling average of recent motion values multiplied by the sensitivity factor. A state machine transitions from idle → active (motion above threshold) → counted (motion drops below 45% of threshold), with a 700 ms cooldown to prevent double-counting.
+The algorithm compares RGB pixel differences between consecutive frames within the detection band. An adaptive threshold is computed from a rolling average of recent motion values multiplied by the sensitivity factor. A state machine transitions from idle → active (motion above threshold) → counted (motion drops below 45% of threshold). A step is only finalised when the below-line region is also quiet (average pixel change < 20), ensuring both feet have fully crossed the line and preventing duplicate or triplicate counts. A 700 ms cooldown provides an additional guard against double-counting.
 
 ## Browser Requirements
 

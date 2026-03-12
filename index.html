@@ -537,18 +537,14 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
   <canvas id="calibCanvas"></canvas>
   <div class="calib-overlay">
     <div class="calib-card">
-      <div class="calib-head" id="calibHead">CALIBRATE</div>
+      <div class="calib-head" id="calibHead">POSITION LINE</div>
       <div class="calib-body" id="calibBody">
-        Position the phone so your <strong>full body is visible</strong> on camera while climbing stairs.<br>
-        Tap <strong>START</strong>, then take <strong>6–8 steps</strong> in front of the camera.
-        The AI will auto-detect where to place the detection line.
+        Position the phone so your <strong>full body is visible</strong> on camera.<br>
+        Drag the line to your <strong>mid-body height</strong>, then tap <strong>START</strong>.
       </div>
-      <div class="calib-cnt" id="calibCnt">7</div>
-      <div class="calib-bar-wrap" id="calibBarWrap"><div class="calib-bar" id="calibBar"></div></div>
-      <div class="calib-st" id="calibSt">Camera ready ·  tap to begin</div>
-      <button class="go-btn" id="calibBtn" onclick="startCalib()">START CALIBRATION</button>
+      <div class="calib-st" id="calibSt">Drag the line · tap START when ready</div>
+      <button class="go-btn" id="calibBtn" onclick="beginTracking()">START TRACKING →</button>
       <button class="go-btn sec" id="flipCamBtn" aria-label="Switch camera" onclick="switchCamera()">⟳ REAR CAM</button>
-      <button class="go-btn sec" onclick="skipCalib()">SKIP → USE MANUAL TAP</button>
     </div>
   </div>
 </div>
@@ -611,10 +607,10 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
 // CONSTANTS
 // ═══════════════════════════════════════════
 const AW = 160, AH = 90;          // analysis canvas size
-const CALIB_SECS = 7;              // calibration duration
 const COOLDOWN_MS = 700;           // min ms between counted steps
 const MOT_BUF_LEN = 18;            // motion history window
 const MIN_THRESH = 10;             // absolute minimum threshold
+const BELOW_THRESH_FACTOR = 2;    // below-line signal must be < MIN_THRESH × this to confirm both feet crossed
 
 // ═══════════════════════════════════════════
 // STATE
@@ -624,11 +620,12 @@ const S = {}; // session
 const D = {}; // detection
 const R = {}; // recording
 
-let rafId = null, timerInt = null, calibInt = null;
+let rafId = null, timerInt = null;
 let calibPreviewRaf = null;
 let frameCount = 0;
 let audioCtx = null;
 let draggingLine = false;
+let draggingCalibLine = false;
 let landingRaf = null;
 let currentFacingMode = 'user'; // front camera by default
 
@@ -999,10 +996,12 @@ async function goToCalib() {
     updateFlipButtonLabel();
   }
 
-  D.lineY      = 0.5;
-  D.prevFrame  = null;
-  D.calibAccum = null;
-  D.calibFrames= 0;
+  D.lineY     = 0.5;
+  D.prevFrame = null;
+
+  calibCanvas.addEventListener('touchstart', onCalibTouchStart, { passive: false });
+  calibCanvas.addEventListener('touchmove',  onCalibTouchMove,  { passive: false });
+  calibCanvas.addEventListener('touchend',   onCalibTouchEnd);
 
   startCalibPreview();
 }
@@ -1012,18 +1011,6 @@ function startCalibPreview() {
     if (camVid.readyState >= 2) {
       const W = calibCanvas.width, H = calibCanvas.height;
       calibCtx.drawImage(camVid, 0, 0, W, H);
-
-      // Heatmap overlay during calibration
-      if (D.calibAccum && D.calibFrames > 5) {
-        const maxV = Math.max(...D.calibAccum, 1);
-        for (let y = 0; y < AH; y++) {
-          const t = D.calibAccum[y] / maxV;
-          if (t < 0.05) continue;
-          const sy = (y/AH)*H, ey = ((y+1)/AH)*H;
-          calibCtx.fillStyle = `rgba(0,255,195,${t*0.22})`;
-          calibCtx.fillRect(0, sy, W, ey-sy);
-        }
-      }
 
       // Detection line preview
       const ly = D.lineY * H;
@@ -1043,85 +1030,30 @@ function startCalibPreview() {
   calibPreviewRaf = requestAnimationFrame(loop);
 }
 
-// ── Calibration countdown ──
-function startCalib() {
-  D.calibAccum  = new Float32Array(AH);
-  D.calibFrames = 0;
-  D.prevFrame   = null;
-
-  document.getElementById('calibBtn').style.display   = 'none';
-  document.getElementById('calibBody').style.display  = 'none';
-  document.getElementById('calibCnt').style.display   = 'block';
-  document.getElementById('calibBarWrap').style.display = 'block';
-  const flipBtn = document.getElementById('flipCamBtn');
-  if (flipBtn) flipBtn.style.display = 'none';
-
-  let secsLeft = CALIB_SECS;
-  document.getElementById('calibCnt').textContent = secsLeft;
-  document.getElementById('calibHead').textContent = 'WALK NOW!';
-  document.getElementById('calibSt').textContent   = 'Recording your motion…';
-
-  // Frame analysis during calibration
-  let calibRaf;
-  function analyzeLoop() {
-    if (camVid.readyState >= 2) {
-      anaCtx.drawImage(camVid, 0, 0, AW, AH);
-      const curr = anaCtx.getImageData(0, 0, AW, AH).data;
-      if (D.prevFrame) {
-        for (let y = 0; y < AH; y++) {
-          let s = 0;
-          for (let x = 0; x < AW; x++) {
-            const i = (y*AW+x)*4;
-            s += Math.abs(curr[i]   - D.prevFrame[i])
-               + Math.abs(curr[i+1] - D.prevFrame[i+1])
-               + Math.abs(curr[i+2] - D.prevFrame[i+2]);
-          }
-          D.calibAccum[y] += s / AW;
-        }
-        D.calibFrames++;
-      }
-      D.prevFrame = new Uint8ClampedArray(curr);
-    }
-    calibRaf = requestAnimationFrame(analyzeLoop);
-  }
-  calibRaf = requestAnimationFrame(analyzeLoop);
-
-  calibInt = setInterval(() => {
-    secsLeft--;
-    document.getElementById('calibCnt').textContent = secsLeft;
-    document.getElementById('calibBar').style.width = ((CALIB_SECS-secsLeft)/CALIB_SECS*100) + '%';
-    if (secsLeft <= 0) {
-      clearInterval(calibInt);
-      cancelAnimationFrame(calibRaf);
-      finishCalib();
-    }
-  }, 1000);
+// ── Calibration line drag ──
+function updateCalibStatus() {
+  document.getElementById('calibSt').textContent =
+    draggingCalibLine
+      ? `Line at ${Math.round(D.lineY*100)}% · release and tap START`
+      : `Line at ${Math.round(D.lineY*100)}% · tap START when ready`;
 }
-
-function finishCalib() {
-  // Weighted center-of-mass of motion
-  const acc = D.calibAccum;
-  let tw = 0, wy = 0;
-  for (let y = 0; y < AH; y++) { tw += acc[y]; wy += y * acc[y]; }
-  if (tw > 0) {
-    D.lineY = Math.max(0.15, Math.min(0.88, (wy/tw) / AH));
-  }
-
-  document.getElementById('calibHead').textContent = 'CALIBRATED!';
-  document.getElementById('calibCnt').style.display = 'none';
-  document.getElementById('calibBarWrap').style.display = 'none';
-  document.getElementById('calibSt').textContent = `Detection line → ${Math.round(D.lineY*100)}% from top  ·  drag to adjust`;
-  document.getElementById('calibBtn').style.display = 'block';
-  document.getElementById('calibBtn').textContent = 'START TRACKING →';
-  document.getElementById('calibBtn').onclick = beginTracking;
+function onCalibTouchStart(e) {
+  draggingCalibLine = true;
+  e.preventDefault();
+  const rect = calibCanvas.getBoundingClientRect();
+  D.lineY = Math.max(0.08, Math.min(0.92, (e.touches[0].clientY - rect.top) / rect.height));
+  updateCalibStatus();
 }
-
-function skipCalib() {
-  cancelAnimationFrame(calibPreviewRaf);
-  clearInterval(calibInt);
-  D.lineY = 0.5;
-  D.prevFrame = null;
-  beginTracking();
+function onCalibTouchMove(e) {
+  if (!draggingCalibLine) return;
+  e.preventDefault();
+  const rect = calibCanvas.getBoundingClientRect();
+  D.lineY = Math.max(0.08, Math.min(0.92, (e.touches[0].clientY - rect.top) / rect.height));
+  updateCalibStatus();
+}
+function onCalibTouchEnd() {
+  draggingCalibLine = false;
+  updateCalibStatus();
 }
 
 // ═══════════════════════════════════════════
@@ -1129,6 +1061,9 @@ function skipCalib() {
 // ═══════════════════════════════════════════
 function beginTracking() {
   cancelAnimationFrame(calibPreviewRaf);
+  calibCanvas.removeEventListener('touchstart', onCalibTouchStart);
+  calibCanvas.removeEventListener('touchmove',  onCalibTouchMove);
+  calibCanvas.removeEventListener('touchend',   onCalibTouchEnd);
 
   // Session state
   S.steps         = 0;
@@ -1144,6 +1079,7 @@ function beginTracking() {
   D.motionBuf    = [];
   D.adaptThresh  = 15;
   D.motionSignal = 0;
+  D.belowSignal  = 0;
 
   show('s-track');
 
@@ -1262,6 +1198,21 @@ function runLoop() {
         }
         D.motionSignal = (cnt > 0) ? bandMot / cnt : 0;
 
+        // Below-line signal: both feet must have fully crossed above the line.
+        // Start one pixel after the detection band ends to avoid overlap.
+        const belowY0 = Math.min(AH - 1, anaLY + band + 1);
+        let belowMot = 0, belowCnt = 0;
+        for (let y = belowY0; y < AH; y++) {
+          for (let x = 0; x < AW; x++) {
+            const i = (y*AW+x)*4;
+            belowMot += Math.abs(curr[i]   - D.prevFrame[i])
+                      + Math.abs(curr[i+1] - D.prevFrame[i+1])
+                      + Math.abs(curr[i+2] - D.prevFrame[i+2]);
+            belowCnt++;
+          }
+        }
+        D.belowSignal = (belowCnt > 0) ? belowMot / belowCnt : 0;
+
         // Adaptive threshold (skip if too much global shake)
         if (globalMot < 30) {
           D.motionBuf.push(D.motionSignal);
@@ -1270,12 +1221,15 @@ function runLoop() {
           D.adaptThresh = Math.max(MIN_THRESH, avg * C.sensitivity);
 
           // State machine: idle↑active↓idle = 1 step
+          // Only count when both feet have cleared the line (below-line motion is quiet)
           const now = Date.now();
           if (!S.stepActive && D.motionSignal > D.adaptThresh && now - S.lastStepMs > COOLDOWN_MS) {
             S.stepActive = true;
           } else if (S.stepActive && D.motionSignal < D.adaptThresh * 0.45) {
             S.stepActive = false;
-            countStep();
+            if (D.belowSignal < MIN_THRESH * BELOW_THRESH_FACTOR) {
+              countStep();
+            }
           }
         }
       }
