@@ -2,6 +2,12 @@
 
 **Computer Vision Step Counter** — a progressive web app that uses your phone camera to automatically detect and count stair steps in real-time.
 
+## 🚀 Try It Now — No Installation Required
+
+**[https://stair-vision.vercel.app/](https://stair-vision.vercel.app/)**
+
+Open the link on your phone — that's it. No install, no build step, no account needed. The app runs entirely in your browser. You can optionally add it to your home screen for a full-screen experience with offline support.
+
 ## Features
 
 - **Real-Time Step Detection** — Uses adaptive motion detection at a configurable horizontal line across the video feed to count steps automatically.
@@ -9,7 +15,8 @@
 - **Manual Adjustments** — Drag the detection line to reposition it, tap to add or undo steps, and adjust sensitivity from 0.6× to 3.5×.
 - **Session Timer & HUD** — Set a time limit and target step count. The on-screen HUD shows remaining time, steps/min rate, ETA, and a progress bar.
 - **Time-Lapse Recording** — Optionally record your session as a sped-up video (WebM) with the HUD overlay included.
-- **Audio & Haptic Feedback** — A short tick sound and vibration on each detected step.
+- **Milestone & Goal Sounds** — A tick sound plays on each step. A distinct chime plays every time you hit a progress milestone (default every 10%, adjustable in Settings). A triumphant fanfare plays when you reach your goal.
+- **Haptic Feedback** — Vibration on each detected step (where supported).
 - **Screen Wake Lock** — Keeps the screen on during tracking so you never lose your session.
 - **Installable PWA** — Install on your home screen for a full-screen, app-like experience with offline support.
 - **Zero Dependencies** — Pure vanilla JavaScript, no frameworks or build tools needed.
@@ -34,9 +41,11 @@
 
 The algorithm compares RGB pixel differences between consecutive frames within the detection band. An adaptive threshold is computed from a rolling average of recent motion values multiplied by the sensitivity factor. A state machine transitions from idle → active (motion above threshold) → counted (motion drops below 45% of threshold), with a 700 ms cooldown to prevent double-counting.
 
-## Try It
+## Browser Requirements
 
-The app is live at **[https://stair-vision.vercel.app/](https://stair-vision.vercel.app/)** — open it on your phone and install it to your home screen for the best experience. No installation or build step required.
+- A modern browser with `getUserMedia` support (Chrome, Safari, Firefox, Edge)
+- HTTPS connection (required for camera access; localhost is exempt)
+- A device with a camera
 
 ## Project Structure
 
@@ -52,12 +61,6 @@ The app is live at **[https://stair-vision.vercel.app/](https://stair-vision.ver
 │   └── icon-maskable-512.svg # Maskable icon 512×512
 └── README.md
 ```
-
-## Browser Requirements
-
-- A modern browser with `getUserMedia` support (Chrome, Safari, Firefox, Edge)
-- HTTPS connection (required for camera access; localhost is exempt)
-- A device with a camera
 
 ## License
 
