@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>StairVision</title>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#05080f;--surface:#0c1020;--card:#111827;
+  --accent:#00ffc3;--accent2:#ff6b00;--text:#e8edf8;
+  --muted:#3a4560;--danger:#ff3355;--ok:#00ff88;
+  --border:#1a2540;--line:#00ffc3;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace}
+
+/* ── SCREEN SYSTEM ── */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}
+.screen.off{display:none!important}
+
+/* ── SETUP ── */
+#s-setup{overflow-y:auto;background:var(--bg);padding:28px 22px 50px;align-items:center;gap:0}
+#s-setup::before{
+  content:'';position:fixed;top:0;left:0;right:0;height:220px;
+  background:radial-gradient(ellipse at 50% -20%,rgba(0,255,195,0.08) 0%,transparent 70%);
+  pointer-events:none;
+}
+.brand-wrap{text-align:center;margin-bottom:36px;width:100%}
+.brand{font-family:'Michroma',sans-serif;font-size:38px;letter-spacing:6px;color:var(--accent);line-height:1}
+.brand em{color:#fff;font-style:normal}
+.brand-tag{font-size:9px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-top:6px}
+
+.field{width:100%;max-width:380px;margin-bottom:20px}
+.flabel{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.finput{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font-family:'Michroma',sans-serif;font-size:32px;letter-spacing:2px;
+  padding:12px 16px;width:100%;outline:none;-webkit-appearance:none;
+  transition:border-color .2s;
+}
+.finput:focus{border-color:var(--accent)}
+.finput::-webkit-inner-spin-button,.finput::-webkit-outer-spin-button{-webkit-appearance:none}
+.finput.sm{font-size:28px}
+.finput.txt{font-family:'Share Tech Mono',monospace;font-size:16px;letter-spacing:1px}
+.tworow{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:380px;margin-bottom:20px}
+.tworow .flabel{margin-top:4px;font-size:8px}
+
+.toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:14px 16px;margin-bottom:20px;
+}
+.tg-text .tg-title{font-size:13px;letter-spacing:1px}
+.tg-text .tg-sub{font-size:10px;color:var(--muted);margin-top:3px}
+.switch{position:relative;width:48px;height:26px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.knob{position:absolute;inset:0;background:var(--border);border-radius:26px;cursor:pointer;transition:.3s}
+.knob:before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s}
+input:checked+.knob{background:var(--accent)}
+input:checked+.knob:before{transform:translateX(22px)}
+
+.sens-field{width:100%;max-width:380px;margin-bottom:28px}
+.sens-row{display:flex;align-items:center;gap:12px;margin-top:10px}
+.sens-val{font-family:'Michroma',sans-serif;font-size:18px;color:var(--accent);min-width:36px;text-align:right}
+input[type=range]{flex:1;accent-color:var(--accent);height:4px}
+
+.go-btn{
+  width:100%;max-width:380px;background:var(--accent);color:#000;border:none;
+  border-radius:12px;font-family:'Michroma',sans-serif;font-size:22px;letter-spacing:4px;
+  padding:18px;cursor:pointer;transition:opacity .15s;-webkit-appearance:none;
+}
+.go-btn:active{opacity:.8}
+.go-btn.sec{background:var(--card);color:var(--text);border:1px solid var(--border);margin-top:10px;font-size:14px;letter-spacing:2px}
+
+/* ── CALIBRATION ── */
+#s-calib{background:#000}
+#calibCanvas{position:absolute;inset:0;width:100%;height:100%}
+.calib-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 18px 36px;pointer-events:none}
+.calib-card{
+  background:rgba(5,8,15,.9);border:1px solid var(--border);border-radius:16px;
+  padding:20px 18px 16px;width:100%;max-width:380px;text-align:center;
+  pointer-events:all;backdrop-filter:blur(16px);
+}
+.calib-head{font-family:'Michroma',sans-serif;font-size:26px;letter-spacing:4px;color:var(--accent);margin-bottom:8px}
+.calib-body{font-size:11px;line-height:1.7;color:var(--muted);margin-bottom:16px}
+.calib-body strong{color:var(--text)}
+.calib-cnt{font-family:'Michroma',sans-serif;font-size:64px;color:var(--accent);line-height:1;display:none;margin-bottom:10px}
+.calib-st{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;min-height:16px;margin-bottom:14px}
+.calib-bar-wrap{background:var(--border);border-radius:4px;height:4px;width:100%;margin-bottom:16px;overflow:hidden;display:none}
+.calib-bar{height:100%;background:var(--accent);width:0%;transition:width .3s;border-radius:4px}
+
+/* ── TRACKING ── */
+#s-track{background:#000}
+#mainCanvas{position:absolute;inset:0;width:100%;height:100%}
+.track-ui{position:absolute;inset:0;display:flex;flex-direction:column;pointer-events:none}
+.track-btns{
+  position:absolute;bottom:0;left:0;right:0;
+  display:flex;gap:8px;padding:10px 14px 22px;
+  background:linear-gradient(to top,rgba(5,8,15,.95) 70%,transparent);
+  pointer-events:all;
+}
+.tbtn{
+  flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;color:var(--text);font-family:'Share Tech Mono',monospace;
+  font-size:11px;letter-spacing:1px;padding:13px 4px;cursor:pointer;
+  text-align:center;transition:background .15s;-webkit-appearance:none;
+}
+.tbtn:active{background:rgba(255,255,255,.14)}
+.tbtn.a{border-color:rgba(0,255,195,.4);color:var(--accent);font-family:'Michroma',sans-serif;font-size:14px;flex:1.4}
+.tbtn.d{border-color:rgba(255,51,85,.35);color:var(--danger)}
+
+#recDot{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  background:rgba(5,8,15,.7);border-radius:6px;padding:4px 10px;
+  display:none;align-items:center;gap:6px;font-size:10px;letter-spacing:2px;color:var(--danger);
+}
+.rdot{width:7px;height:7px;background:var(--danger);border-radius:50%;animation:rblink 1.1s infinite}
+@keyframes rblink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.drag-hint{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(0,255,195,.12);border:1px solid var(--accent);border-radius:10px;
+  padding:8px 16px;font-size:10px;letter-spacing:2px;color:var(--accent);
+  text-transform:uppercase;text-align:center;display:none;pointer-events:none;
+  backdrop-filter:blur(8px);
+}
+
+/* ── REVIEW ── */
+#s-review{overflow-y:auto;background:var(--bg);padding:28px 20px 50px;align-items:center;gap:0}
+#s-review::before{content:'';position:fixed;top:0;left:0;right:0;height:180px;background:radial-gradient(ellipse at 50% -10%,rgba(0,255,195,.06) 0%,transparent 70%);pointer-events:none}
+
+.rv-title{font-family:'Michroma',sans-serif;font-size:42px;letter-spacing:5px;line-height:1;margin-bottom:6px}
+.rv-title.win{color:var(--accent)}
+.rv-title.close{color:var(--accent2)}
+.rv-title.lose{color:var(--danger)}
+.rv-sub{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:24px}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:400px;margin-bottom:22px}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 12px}
+.sb-val{font-family:'Michroma',sans-serif;font-size:28px;letter-spacing:1px;color:var(--accent)}
+.sb-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:3px}
+
+.vsect{width:100%;max-width:400px;margin-bottom:20px}
+.vsect-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+#reviewVideo{width:100%;border-radius:12px;background:#000;display:block;max-height:38vh;object-fit:contain}
+.speed-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.spd-btn{
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-family:'Michroma',sans-serif;font-size:18px;
+  padding:12px 0;cursor:pointer;transition:all .15s;-webkit-appearance:none;text-align:center;
+}
+.spd-btn.on{background:var(--accent);color:#000;border-color:var(--accent)}
+.spd-btn:active{opacity:.7}
+
+.dl-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font-size:12px;letter-spacing:2px;padding:14px;
+  text-decoration:none;margin-top:10px;cursor:pointer;-webkit-appearance:none;
+  text-transform:uppercase;
+}
+
+/* Hidden elements */
+#camVid{display:none}
+#anaCanvas{display:none}
+</style>
+</head>
+<body>
+
+<!-- ════════════════ SETUP ════════════════ -->
+<div id="s-setup" class="screen">
+  <div class="brand-wrap">
+    <div class="brand">STAIR<em>VISION</em></div>
+    <div class="brand-tag">Computer Vision Step Counter</div>
+  </div>
+
+  <div class="field">
+    <div class="flabel">Session Name</div>
+    <input class="finput txt" id="objName" type="text" value="1000 STAIR STEPS" maxlength="30">
+  </div>
+
+  <div class="field">
+    <div class="flabel">Target Steps</div>
+    <input class="finput" id="targetSteps" type="number" value="1000" min="1" inputmode="numeric">
+  </div>
+
+  <div class="field">
+    <div class="flabel">Time Limit</div>
+    <div class="tworow" style="margin-bottom:0">
+      <div><input class="finput sm" id="timeH" type="number" value="2" min="0" max="23" inputmode="numeric"><div class="flabel" style="margin-top:6px;margin-bottom:0">HOURS</div></div>
+      <div><input class="finput sm" id="timeM" type="number" value="0" min="0" max="59" inputmode="numeric"><div class="flabel" style="margin-top:6px;margin-bottom:0">MINUTES</div></div>
+    </div>
+  </div>
+
+  <div class="sens-field">
+    <div class="flabel">Detection Sensitivity</div>
+    <div class="sens-row">
+      <input type="range" id="sens" min="0.6" max="3.5" step="0.1" value="1.8" oninput="document.getElementById('sensVal').textContent=parseFloat(this.value).toFixed(1)">
+      <span class="sens-val" id="sensVal">1.8</span>
+    </div>
+  </div>
+
+  <div class="toggle-row">
+    <div class="tg-text">
+      <div class="tg-title">Record Time-Lapse</div>
+      <div class="tg-sub">Save session as sped-up video</div>
+    </div>
+    <label class="switch"><input type="checkbox" id="recToggle"><span class="knob"></span></label>
+  </div>
+
+  <button class="go-btn" onclick="goToCalib()">OPEN CAMERA →</button>
+</div>
+
+<!-- ════════════════ CALIBRATION ════════════════ -->
+<div id="s-calib" class="screen off">
+  <canvas id="calibCanvas"></canvas>
+  <div class="calib-overlay">
+    <div class="calib-card">
+      <div class="calib-head" id="calibHead">CALIBRATE</div>
+      <div class="calib-body" id="calibBody">
+        Position the phone so your <strong>full body is visible</strong> on camera while climbing stairs.<br>
+        Tap <strong>START</strong>, then take <strong>6–8 steps</strong> in front of the camera.
+        The AI will auto-detect where to place the detection line.
+      </div>
+      <div class="calib-cnt" id="calibCnt">7</div>
+      <div class="calib-bar-wrap" id="calibBarWrap"><div class="calib-bar" id="calibBar"></div></div>
+      <div class="calib-st" id="calibSt">Camera ready ·  tap to begin</div>
+      <button class="go-btn" id="calibBtn" onclick="startCalib()">START CALIBRATION</button>
+      <button class="go-btn sec" onclick="skipCalib()">SKIP → USE MANUAL TAP</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ TRACKING ════════════════ -->
+<div id="s-track" class="screen off">
+  <canvas id="mainCanvas"></canvas>
+
+  <div class="track-ui">
+    <!-- Recording indicator -->
+    <div id="recDot"><span class="rdot"></span>REC</div>
+    <!-- Drag hint -->
+    <div class="drag-hint" id="dragHint">DRAG LINE TO REPOSITION</div>
+  </div>
+
+  <!-- Control buttons -->
+  <div class="track-btns">
+    <button class="tbtn" onclick="undoStep()">↩ UNDO</button>
+    <button class="tbtn a" id="tapBtn" onclick="manualStep()">+ STEP</button>
+    <button class="tbtn" id="pauseBtn" onclick="togglePause()">⏸ PAUSE</button>
+    <button class="tbtn d" onclick="confirmStop()">■ STOP</button>
+  </div>
+</div>
+
+<!-- ════════════════ REVIEW ════════════════ -->
+<div id="s-review" class="screen off">
+  <div class="rv-title" id="rvTitle">DONE</div>
+  <div class="rv-sub" id="rvSub">Session complete</div>
+
+  <div class="stats-grid">
+    <div class="stat-box"><div class="sb-val" id="rv-steps">—</div><div class="sb-lbl">Steps Done</div></div>
+    <div class="stat-box"><div class="sb-val" id="rv-pct">—</div><div class="sb-lbl">Completion</div></div>
+    <div class="stat-box"><div class="sb-val" id="rv-time">—</div><div class="sb-lbl">Time Used</div></div>
+    <div class="stat-box"><div class="sb-val" id="rv-rate">—</div><div class="sb-lbl">Steps/Min</div></div>
+  </div>
+
+  <div class="vsect" id="vsect" style="display:none">
+    <div class="vsect-label">Time-Lapse Recording</div>
+    <video id="reviewVideo" controls playsinline></video>
+    <div class="vsect-label" style="margin-top:14px">Playback Speed</div>
+    <div class="speed-grid">
+      <button class="spd-btn on" onclick="setSpeed(1,this)">1×</button>
+      <button class="spd-btn" onclick="setSpeed(2,this)">2×</button>
+      <button class="spd-btn" onclick="setSpeed(5,this)">5×</button>
+      <button class="spd-btn" onclick="setSpeed(10,this)">10×</button>
+    </div>
+    <a class="dl-btn" id="dlBtn" download="stairvision.webm">⬇ DOWNLOAD VIDEO</a>
+  </div>
+
+  <button class="go-btn" onclick="restart()" style="max-width:400px;width:100%">↩ NEW SESSION</button>
+</div>
+
+<!-- ════ HIDDEN ELEMENTS ════ -->
+<video id="camVid" playsinline muted autoplay></video>
+<canvas id="anaCanvas" width="160" height="90"></canvas>
+
+<script>
+// ═══════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════
+const AW = 160, AH = 90;          // analysis canvas size
+const CALIB_SECS = 7;              // calibration duration
+const COOLDOWN_MS = 700;           // min ms between counted steps
+const MOT_BUF_LEN = 18;            // motion history window
+const MIN_THRESH = 10;             // absolute minimum threshold
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const C = {}; // config
+const S = {}; // session
+const D = {}; // detection
+const R = {}; // recording
+
+let rafId = null, timerInt = null, calibInt = null;
+let calibPreviewRaf = null;
+let frameCount = 0;
+let audioCtx = null;
+let draggingLine = false;
+
+const camVid    = document.getElementById('camVid');
+const anaCanvas = document.getElementById('anaCanvas');
+const anaCtx    = anaCanvas.getContext('2d', { willReadFrequently: true });
+let calibCanvas, calibCtx, mainCanvas, mainCtx;
+
+// ═══════════════════════════════════════════
+// SCREEN MANAGER
+// ═══════════════════════════════════════════
+function show(id) {
+  ['s-setup','s-calib','s-track','s-review'].forEach(s =>
+    document.getElementById(s).classList.toggle('off', s !== id));
+}
+
+// ═══════════════════════════════════════════
+// CAMERA INIT
+// ═══════════════════════════════════════════
+async function initCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
+    });
+    camVid.srcObject = stream;
+    await new Promise(res => camVid.addEventListener('loadedmetadata', res, { once: true }));
+    await camVid.play();
+    return true;
+  } catch(e) {
+    alert('Camera permission required. Please allow camera access and reload.');
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// SETUP → CALIBRATION
+// ═══════════════════════════════════════════
+async function goToCalib() {
+  const h = parseInt(document.getElementById('timeH').value)||0;
+  const m = parseInt(document.getElementById('timeM').value)||0;
+  C.totalSecs   = h*3600 + m*60;
+  C.targetSteps = parseInt(document.getElementById('targetSteps').value)||1000;
+  C.objName     = document.getElementById('objName').value.trim() || `${C.targetSteps} STEPS`;
+  C.recEnabled  = document.getElementById('recToggle').checked;
+  C.sensitivity = parseFloat(document.getElementById('sens').value)||1.8;
+
+  if (C.totalSecs <= 0) { alert('Set a time limit!'); return; }
+
+  const ok = await initCamera();
+  if (!ok) return;
+
+  show('s-calib');
+  calibCanvas = document.getElementById('calibCanvas');
+  calibCtx    = calibCanvas.getContext('2d');
+  calibCanvas.width  = window.innerWidth;
+  calibCanvas.height = window.innerHeight;
+
+  D.lineY      = 0.5;
+  D.prevFrame  = null;
+  D.calibAccum = null;
+  D.calibFrames= 0;
+
+  startCalibPreview();
+}
+
+function startCalibPreview() {
+  function loop() {
+    if (camVid.readyState >= 2) {
+      const W = calibCanvas.width, H = calibCanvas.height;
+      calibCtx.drawImage(camVid, 0, 0, W, H);
+
+      // Heatmap overlay during calibration
+      if (D.calibAccum && D.calibFrames > 5) {
+        const maxV = Math.max(...D.calibAccum, 1);
+        for (let y = 0; y < AH; y++) {
+          const t = D.calibAccum[y] / maxV;
+          if (t < 0.05) continue;
+          const sy = (y/AH)*H, ey = ((y+1)/AH)*H;
+          calibCtx.fillStyle = `rgba(0,255,195,${t*0.22})`;
+          calibCtx.fillRect(0, sy, W, ey-sy);
+        }
+      }
+
+      // Detection line preview
+      const ly = D.lineY * H;
+      calibCtx.save();
+      calibCtx.shadowColor = '#00ffc3';
+      calibCtx.shadowBlur = 10;
+      calibCtx.strokeStyle = 'rgba(0,255,195,0.75)';
+      calibCtx.lineWidth = 2;
+      calibCtx.setLineDash([10,7]);
+      calibCtx.beginPath();
+      calibCtx.moveTo(0, ly); calibCtx.lineTo(W, ly);
+      calibCtx.stroke();
+      calibCtx.restore();
+    }
+    calibPreviewRaf = requestAnimationFrame(loop);
+  }
+  calibPreviewRaf = requestAnimationFrame(loop);
+}
+
+// ── Calibration countdown ──
+function startCalib() {
+  D.calibAccum  = new Float32Array(AH);
+  D.calibFrames = 0;
+  D.prevFrame   = null;
+
+  document.getElementById('calibBtn').style.display   = 'none';
+  document.getElementById('calibBody').style.display  = 'none';
+  document.getElementById('calibCnt').style.display   = 'block';
+  document.getElementById('calibBarWrap').style.display = 'block';
+
+  let secsLeft = CALIB_SECS;
+  document.getElementById('calibCnt').textContent = secsLeft;
+  document.getElementById('calibHead').textContent = 'WALK NOW!';
+  document.getElementById('calibSt').textContent   = 'Recording your motion…';
+
+  // Frame analysis during calibration
+  let calibRaf;
+  function analyzeLoop() {
+    if (camVid.readyState >= 2) {
+      anaCtx.drawImage(camVid, 0, 0, AW, AH);
+      const curr = anaCtx.getImageData(0, 0, AW, AH).data;
+      if (D.prevFrame) {
+        for (let y = 0; y < AH; y++) {
+          let s = 0;
+          for (let x = 0; x < AW; x++) {
+            const i = (y*AW+x)*4;
+            s += Math.abs(curr[i]   - D.prevFrame[i])
+               + Math.abs(curr[i+1] - D.prevFrame[i+1])
+               + Math.abs(curr[i+2] - D.prevFrame[i+2]);
+          }
+          D.calibAccum[y] += s / AW;
+        }
+        D.calibFrames++;
+      }
+      D.prevFrame = new Uint8ClampedArray(curr);
+    }
+    calibRaf = requestAnimationFrame(analyzeLoop);
+  }
+  calibRaf = requestAnimationFrame(analyzeLoop);
+
+  calibInt = setInterval(() => {
+    secsLeft--;
+    document.getElementById('calibCnt').textContent = secsLeft;
+    document.getElementById('calibBar').style.width = ((CALIB_SECS-secsLeft)/CALIB_SECS*100) + '%';
+    if (secsLeft <= 0) {
+      clearInterval(calibInt);
+      cancelAnimationFrame(calibRaf);
+      finishCalib();
+    }
+  }, 1000);
+}
+
+function finishCalib() {
+  // Weighted center-of-mass of motion
+  const acc = D.calibAccum;
+  let tw = 0, wy = 0;
+  for (let y = 0; y < AH; y++) { tw += acc[y]; wy += y * acc[y]; }
+  if (tw > 0) {
+    D.lineY = Math.max(0.15, Math.min(0.88, (wy/tw) / AH));
+  }
+
+  document.getElementById('calibHead').textContent = 'CALIBRATED!';
+  document.getElementById('calibCnt').style.display = 'none';
+  document.getElementById('calibBarWrap').style.display = 'none';
+  document.getElementById('calibSt').textContent = `Detection line → ${Math.round(D.lineY*100)}% from top  ·  drag to adjust`;
+  document.getElementById('calibBtn').style.display = 'block';
+  document.getElementById('calibBtn').textContent = 'START TRACKING →';
+  document.getElementById('calibBtn').onclick = beginTracking;
+}
+
+function skipCalib() {
+  cancelAnimationFrame(calibPreviewRaf);
+  clearInterval(calibInt);
+  D.lineY = 0.5;
+  D.prevFrame = null;
+  beginTracking();
+}
+
+// ═══════════════════════════════════════════
+// BEGIN TRACKING
+// ═══════════════════════════════════════════
+function beginTracking() {
+  cancelAnimationFrame(calibPreviewRaf);
+
+  // Session state
+  S.steps         = 0;
+  S.remainingSecs = C.totalSecs;
+  S.paused        = false;
+  S.running       = true;
+  S.lastStepMs    = Date.now(); // prevent immediate count on start
+  S.stepActive    = false;
+  S.stepPulse     = 0;
+
+  // Detection state
+  D.prevFrame    = null;
+  D.motionBuf    = [];
+  D.adaptThresh  = 15;
+  D.motionSignal = 0;
+
+  show('s-track');
+
+  mainCanvas = document.getElementById('mainCanvas');
+  mainCtx    = mainCanvas.getContext('2d');
+  mainCanvas.width  = window.innerWidth;
+  mainCanvas.height = window.innerHeight;
+
+  // Touch to drag detection line
+  mainCanvas.addEventListener('touchstart', onTouchStart, { passive: false });
+  mainCanvas.addEventListener('touchmove',  onTouchMove,  { passive: false });
+  mainCanvas.addEventListener('touchend',   onTouchEnd);
+
+  // Recording setup
+  if (C.recEnabled) setupRecording();
+
+  // Timer
+  timerInt = setInterval(timerTick, 1000);
+
+  // Render loop (start after fonts load)
+  document.fonts.ready.then(() => runLoop());
+
+  requestWakeLock();
+}
+
+// ── Line drag ──
+function onTouchStart(e) {
+  const rect   = mainCanvas.getBoundingClientRect();
+  const touchY = (e.touches[0].clientY - rect.top) / rect.height;
+  const lineY  = D.lineY;
+  if (Math.abs(touchY - lineY) < 0.07) {
+    draggingLine = true;
+    document.getElementById('dragHint').style.display = 'block';
+    e.preventDefault();
+  }
+}
+function onTouchMove(e) {
+  if (!draggingLine) return;
+  e.preventDefault();
+  const rect = mainCanvas.getBoundingClientRect();
+  D.lineY = Math.max(0.08, Math.min(0.92, (e.touches[0].clientY - rect.top) / rect.height));
+}
+function onTouchEnd() {
+  draggingLine = false;
+  document.getElementById('dragHint').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════
+// RECORDING
+// ═══════════════════════════════════════════
+function setupRecording() {
+  try {
+    const types = ['video/webm;codecs=vp8','video/webm','video/mp4'];
+    let mt = '';
+    for (const t of types) { if (MediaRecorder.isTypeSupported(t)) { mt = t; break; } }
+    R.chunks = [];
+    R.stream = mainCanvas.captureStream(24);
+    R.mr = new MediaRecorder(R.stream, { mimeType: mt, videoBitsPerSecond: 2000000 });
+    R.mr.ondataavailable = e => { if (e.data.size > 0) R.chunks.push(e.data); };
+    R.mr.start(500);
+    document.getElementById('recDot').style.display = 'flex';
+  } catch(e) {
+    console.warn('Recording not supported:', e);
+    C.recEnabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// MAIN RENDER / DETECTION LOOP
+// ═══════════════════════════════════════════
+function runLoop() {
+  function loop() {
+    if (!S.running) return;
+    rafId = requestAnimationFrame(loop);
+    frameCount++;
+
+    if (!mainCanvas || camVid.readyState < 2) return;
+    const W = mainCanvas.width, H = mainCanvas.height;
+
+    // ── 1. Camera feed ──
+    mainCtx.drawImage(camVid, 0, 0, W, H);
+
+    // ── 2. Motion detection (every 2 frames) ──
+    if (!S.paused && frameCount % 2 === 0) {
+      anaCtx.drawImage(camVid, 0, 0, AW, AH);
+      const curr = anaCtx.getImageData(0, 0, AW, AH).data;
+
+      if (D.prevFrame) {
+        // Reject camera shake: check global frame motion
+        let globalMot = 0;
+        for (let i = 0; i < curr.length; i += 16) {
+          globalMot += Math.abs(curr[i] - D.prevFrame[i]);
+        }
+        globalMot /= (curr.length / 16);
+
+        // Band motion around detection line
+        const anaLY  = Math.round(D.lineY * AH);
+        const band   = 9;
+        const y0     = Math.max(0, anaLY - band);
+        const y1     = Math.min(AH-1, anaLY + band);
+        let bandMot  = 0, cnt = 0;
+        for (let y = y0; y <= y1; y++) {
+          for (let x = 0; x < AW; x++) {
+            const i = (y*AW+x)*4;
+            bandMot += Math.abs(curr[i]   - D.prevFrame[i])
+                     + Math.abs(curr[i+1] - D.prevFrame[i+1])
+                     + Math.abs(curr[i+2] - D.prevFrame[i+2]);
+            cnt++;
+          }
+        }
+        D.motionSignal = (cnt > 0) ? bandMot / cnt : 0;
+
+        // Adaptive threshold (skip if too much global shake)
+        if (globalMot < 30) {
+          D.motionBuf.push(D.motionSignal);
+          if (D.motionBuf.length > MOT_BUF_LEN) D.motionBuf.shift();
+          const avg = D.motionBuf.reduce((a,b)=>a+b,0) / D.motionBuf.length;
+          D.adaptThresh = Math.max(MIN_THRESH, avg * C.sensitivity);
+
+          // State machine: idle↑active↓idle = 1 step
+          const now = Date.now();
+          if (!S.stepActive && D.motionSignal > D.adaptThresh && now - S.lastStepMs > COOLDOWN_MS) {
+            S.stepActive = true;
+          } else if (S.stepActive && D.motionSignal < D.adaptThresh * 0.45) {
+            S.stepActive = false;
+            countStep();
+          }
+        }
+      }
+      D.prevFrame = new Uint8ClampedArray(curr);
+    }
+
+    // ── 3. Detection line ──
+    if (S.stepPulse > 0) S.stepPulse = Math.max(0, S.stepPulse - 0.04);
+    const ly = D.lineY * H;
+    const glow = 6 + S.stepPulse * 28;
+
+    // Zone gradient
+    const grad = mainCtx.createLinearGradient(0, ly-50, 0, ly+50);
+    grad.addColorStop(0,   'rgba(0,255,195,0)');
+    grad.addColorStop(0.5, `rgba(0,255,195,${0.06 + S.stepPulse*0.2})`);
+    grad.addColorStop(1,   'rgba(0,255,195,0)');
+    mainCtx.fillStyle = grad;
+    mainCtx.fillRect(0, ly-50, W, 100);
+
+    // Line itself
+    mainCtx.save();
+    mainCtx.shadowColor = '#00ffc3';
+    mainCtx.shadowBlur  = glow;
+    mainCtx.strokeStyle = `rgba(0,255,195,${0.6 + S.stepPulse*0.4})`;
+    mainCtx.lineWidth   = 2 + S.stepPulse;
+    mainCtx.setLineDash(draggingLine ? [] : [14, 9]);
+    mainCtx.beginPath();
+    mainCtx.moveTo(0, ly); mainCtx.lineTo(W, ly);
+    mainCtx.stroke();
+    mainCtx.restore();
+
+    // Motion bar on line
+    const motNorm = Math.min(1, D.motionSignal / (D.adaptThresh * 2 || 1));
+    const barW = motNorm * W;
+    mainCtx.fillStyle = `rgba(0,255,195,${0.3 + S.stepPulse*0.4})`;
+    mainCtx.fillRect(0, ly-2, barW, 4);
+
+    // Step marker dots (tick on line each step, last 8)
+    if (typeof S.stepMarkers !== 'undefined') {
+      const now = Date.now();
+      S.stepMarkers = S.stepMarkers.filter(m => now - m.t < 4000);
+      S.stepMarkers.forEach(m => {
+        const alpha = 1 - (now - m.t) / 4000;
+        mainCtx.beginPath();
+        mainCtx.arc(m.x * W, ly, 4, 0, Math.PI*2);
+        mainCtx.fillStyle = `rgba(0,255,195,${alpha * 0.8})`;
+        mainCtx.fill();
+      });
+    }
+
+    // ── 4. HUD Text (drawn on canvas → included in recording) ──
+    drawHUD(W, H);
+
+    // ── 5. PAUSED overlay ──
+    if (S.paused) {
+      mainCtx.fillStyle = 'rgba(5,8,15,0.55)';
+      mainCtx.fillRect(0, 0, W, H);
+      mainCtx.fillStyle = '#fff';
+      mainCtx.font = `bold ${W*0.12}px Michroma, sans-serif`;
+      mainCtx.textAlign = 'center';
+      mainCtx.textBaseline = 'middle';
+      mainCtx.fillText('PAUSED', W/2, H/2);
+    }
+  }
+  rafId = requestAnimationFrame(loop);
+}
+
+function drawHUD(W, H) {
+  mainCtx.save();
+
+  // Top gradient bar
+  const topGrad = mainCtx.createLinearGradient(0,0,0,H*0.22);
+  topGrad.addColorStop(0, 'rgba(5,8,15,0.85)');
+  topGrad.addColorStop(1, 'rgba(5,8,15,0)');
+  mainCtx.fillStyle = topGrad;
+  mainCtx.fillRect(0, 0, W, H*0.22);
+
+  // Timer — top left
+  const rem = S.remainingSecs;
+  const timerColor = rem <= 60 ? '#ff3355' : rem <= 300 ? '#ff6b00' : '#e8edf8';
+  mainCtx.fillStyle = timerColor;
+  mainCtx.font = `${Math.round(W*0.115)}px Michroma, Impact, sans-serif`;
+  mainCtx.textAlign = 'left';
+  mainCtx.textBaseline = 'top';
+  mainCtx.shadowColor = timerColor;
+  mainCtx.shadowBlur  = rem <= 60 ? 12 : 0;
+  mainCtx.fillText(fmtTime(rem), W*0.04, H*0.025);
+  mainCtx.shadowBlur = 0;
+
+  // "REMAINING" label
+  mainCtx.fillStyle = 'rgba(255,255,255,0.35)';
+  mainCtx.font = `${Math.round(W*0.03)}px Share Tech Mono, monospace`;
+  mainCtx.fillText('REMAINING', W*0.04, H*0.025 + W*0.125);
+
+  // Steps/min — top right
+  const elapsed = C.totalSecs - S.remainingSecs;
+  let rateStr = '—';
+  let etaStr  = '—';
+  if (elapsed > 5 && S.steps > 0) {
+    const rate = (S.steps / elapsed) * 60;
+    rateStr = rate.toFixed(1);
+    const left = C.targetSteps - S.steps;
+    if (left > 0) {
+      const eta = left / (S.steps / elapsed);
+      etaStr = eta < 3600
+        ? `${Math.floor(eta/60)}:${String(Math.floor(eta%60)).padStart(2,'0')}`
+        : `${(eta/3600).toFixed(1)}h`;
+    } else { etaStr = '✓'; }
+  }
+
+  mainCtx.fillStyle = 'rgba(255,255,255,0.35)';
+  mainCtx.font = `${Math.round(W*0.03)}px Share Tech Mono, monospace`;
+  mainCtx.textAlign = 'right';
+  mainCtx.fillText('STEPS/MIN', W*0.97, H*0.025);
+  mainCtx.fillStyle = '#e8edf8';
+  mainCtx.font = `${Math.round(W*0.075)}px Michroma, Impact, sans-serif`;
+  mainCtx.fillText(rateStr, W*0.97, H*0.025 + W*0.033);
+  mainCtx.fillStyle = 'rgba(255,255,255,0.35)';
+  mainCtx.font = `${Math.round(W*0.03)}px Share Tech Mono, monospace`;
+  mainCtx.fillText('ETA', W*0.97, H*0.025 + W*0.033 + W*0.08);
+  const etaGood = etaStr !== '—' && etaStr !== '✓' && S.remainingSecs > 0 &&
+    parseTimeStr(etaStr) <= S.remainingSecs;
+  mainCtx.fillStyle = etaStr === '✓' ? '#00ff88' : (etaGood ? '#00ffc3' : '#ff3355');
+  mainCtx.font = `${Math.round(W*0.055)}px Michroma, Impact, sans-serif`;
+  mainCtx.fillText(etaStr, W*0.97, H*0.025 + W*0.033 + W*0.08 + W*0.033);
+
+  // Big step count — center
+  const pulse = S.stepPulse;
+  const scale = 1 + pulse * 0.06;
+  const countSize = Math.min(W*0.38, H*0.22);
+  mainCtx.save();
+  mainCtx.translate(W/2, H*0.46);
+  mainCtx.scale(scale, scale);
+  mainCtx.shadowColor = '#00ffc3';
+  mainCtx.shadowBlur  = 10 + pulse * 40;
+  mainCtx.fillStyle   = '#00ffc3';
+  mainCtx.font        = `${countSize}px Michroma, Impact, sans-serif`;
+  mainCtx.textAlign   = 'center';
+  mainCtx.textBaseline= 'middle';
+  mainCtx.fillText(S.steps, 0, 0);
+  mainCtx.restore();
+
+  // "of N steps" sub-label
+  mainCtx.shadowBlur = 0;
+  mainCtx.fillStyle  = 'rgba(255,255,255,0.4)';
+  mainCtx.font       = `${W*0.032}px Share Tech Mono, monospace`;
+  mainCtx.textAlign  = 'center';
+  mainCtx.textBaseline = 'top';
+  mainCtx.fillText(`of ${C.targetSteps} steps`, W/2, H*0.46 + countSize*0.56);
+
+  // Progress bar (bottom of HUD area, above buttons)
+  const pct = Math.min(1, S.steps / C.targetSteps);
+  const barY = H - H*0.185;
+  mainCtx.fillStyle = 'rgba(255,255,255,0.07)';
+  mainCtx.fillRect(0, barY, W, 3);
+  const pbGrad = mainCtx.createLinearGradient(0,0,W*pct,0);
+  pbGrad.addColorStop(0, '#00ffc3');
+  pbGrad.addColorStop(1, '#00ff88');
+  mainCtx.fillStyle = pbGrad;
+  mainCtx.fillRect(0, barY, W*pct, 3);
+
+  mainCtx.restore();
+}
+
+function parseTimeStr(s) {
+  // e.g. "12:34" → seconds
+  const parts = s.split(':').map(Number);
+  if (parts.length === 2) return parts[0]*60 + parts[1];
+  if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
+  return Infinity;
+}
+
+// ═══════════════════════════════════════════
+// STEP COUNTING
+// ═══════════════════════════════════════════
+function countStep() {
+  if (!S.running || S.paused) return;
+  S.steps++;
+  S.lastStepMs = Date.now();
+  S.stepPulse  = 1;
+
+  // Register a visual tick mark on the detection line
+  if (!S.stepMarkers) S.stepMarkers = [];
+  S.stepMarkers.push({ t: Date.now(), x: 0.1 + Math.random()*0.8 });
+
+  if (navigator.vibrate) navigator.vibrate(25);
+  playTick();
+  if (S.steps >= C.targetSteps) endSession(true);
+}
+
+function manualStep() {
+  if (!S.running || S.paused) return;
+  S.lastStepMs = Date.now() - COOLDOWN_MS;
+  countStep();
+}
+
+function undoStep() {
+  if (S.steps <= 0) return;
+  S.steps = Math.max(0, S.steps - 1);
+}
+
+// ═══════════════════════════════════════════
+// TIMER
+// ═══════════════════════════════════════════
+function timerTick() {
+  if (S.paused) return;
+  S.remainingSecs--;
+  if (S.remainingSecs <= 0) endSession(false);
+}
+
+function fmtTime(s) {
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+// ═══════════════════════════════════════════
+// PAUSE / STOP
+// ═══════════════════════════════════════════
+function togglePause() {
+  S.paused = !S.paused;
+  document.getElementById('pauseBtn').textContent = S.paused ? '▶ RESUME' : '⏸ PAUSE';
+}
+
+function confirmStop() {
+  if (confirm('End this session?')) endSession(false);
+}
+
+// ═══════════════════════════════════════════
+// END SESSION
+// ═══════════════════════════════════════════
+async function endSession(goalReached) {
+  S.running = false;
+  clearInterval(timerInt);
+  cancelAnimationFrame(rafId);
+
+  mainCanvas.removeEventListener('touchstart', onTouchStart);
+  mainCanvas.removeEventListener('touchmove',  onTouchMove);
+  mainCanvas.removeEventListener('touchend',   onTouchEnd);
+
+  // Stop recording
+  if (C.recEnabled && R.mr && R.mr.state !== 'inactive') {
+    R.mr.stop();
+    await new Promise(res => R.mr.addEventListener('stop', res, { once: true }));
+    R.blob = new Blob(R.chunks, { type: R.chunks[0]?.type || 'video/webm' });
+  }
+
+  showReview(goalReached);
+}
+
+// ═══════════════════════════════════════════
+// REVIEW
+// ═══════════════════════════════════════════
+function showReview(goalReached) {
+  show('s-review');
+
+  const elapsed = C.totalSecs - S.remainingSecs;
+  const pct     = Math.round((S.steps / C.targetSteps) * 100);
+  const rate    = elapsed > 0 ? ((S.steps / elapsed) * 60).toFixed(1) : '—';
+
+  document.getElementById('rv-steps').textContent = `${S.steps}/${C.targetSteps}`;
+  document.getElementById('rv-pct').textContent   = `${pct}%`;
+  document.getElementById('rv-time').textContent  = fmtTime(elapsed);
+  document.getElementById('rv-rate').textContent  = rate;
+
+  const t = document.getElementById('rvTitle');
+  if (goalReached)    { t.textContent = '🏆 GOAL!';    t.className = 'rv-title win'; }
+  else if (pct >= 75) { t.textContent = '💪 SO CLOSE'; t.className = 'rv-title close'; }
+  else                { t.textContent = '😤 TRY AGAIN';t.className = 'rv-title lose'; }
+
+  document.getElementById('rvSub').textContent = C.objName;
+
+  if (R.blob) {
+    const url = URL.createObjectURL(R.blob);
+    const vid = document.getElementById('reviewVideo');
+    vid.src = url;
+    vid.playbackRate = 1;
+    document.getElementById('dlBtn').href     = url;
+    document.getElementById('dlBtn').download = `stairvision_${S.steps}steps.webm`;
+    document.getElementById('vsect').style.display = 'block';
+    // Reset speed buttons
+    document.querySelectorAll('.spd-btn').forEach(b => b.classList.remove('on'));
+    document.querySelector('.spd-btn').classList.add('on');
+  }
+}
+
+function setSpeed(s, btn) {
+  document.querySelectorAll('.spd-btn').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  const v = document.getElementById('reviewVideo');
+  if (v) v.playbackRate = s;
+}
+
+// ═══════════════════════════════════════════
+// RESTART
+// ═══════════════════════════════════════════
+function restart() {
+  R.blob   = null;
+  R.chunks = [];
+  if (camVid.srcObject) {
+    camVid.srcObject.getTracks().forEach(t => t.stop());
+    camVid.srcObject = null;
+  }
+  S.stepMarkers = [];
+  show('s-setup');
+}
+
+// ═══════════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════════
+function playTick() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.type = 'sine';
+    o.frequency.value = 1400;
+    g.gain.setValueAtTime(0.18, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.07);
+    o.start(); o.stop(audioCtx.currentTime + 0.07);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════
+// WAKE LOCK
+// ═══════════════════════════════════════════
+async function requestWakeLock() {
+  try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch(e) {}
+}
+</script>
+</body>
+</html>
