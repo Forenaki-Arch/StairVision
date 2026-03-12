@@ -215,6 +215,22 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
   backdrop-filter:blur(8px);
 }
 
+/* ── PRE-TRACKING COUNTDOWN ── */
+.countdown-overlay{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(5,8,15,.62);z-index:10;pointer-events:none;
+}
+.countdown-inner{text-align:center}
+.countdown-label{
+  font-family:'Michroma',sans-serif;font-size:13px;letter-spacing:6px;
+  color:rgba(255,255,255,.45);text-transform:uppercase;margin-bottom:10px;
+}
+.countdown-num{
+  font-family:'Michroma',sans-serif;font-size:clamp(80px,25vw,140px);
+  color:var(--accent);line-height:1;
+  text-shadow:0 0 40px rgba(0,255,195,.55);
+}
+
 /* ── REVIEW ── */
 #s-review{overflow-y:auto;background:var(--bg);padding:28px 20px 50px;align-items:center;gap:0}
 #s-review::before{content:'';position:fixed;top:0;left:0;right:0;height:180px;background:radial-gradient(ellipse at 50% -10%,rgba(0,255,195,.06) 0%,transparent 70%);pointer-events:none}
@@ -560,6 +576,14 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
     <div class="drag-hint" id="dragHint">DRAG LINE TO REPOSITION</div>
   </div>
 
+  <!-- Pre-tracking countdown -->
+  <div class="countdown-overlay" id="countdownOverlay" style="display:none">
+    <div class="countdown-inner">
+      <div class="countdown-label">GET READY</div>
+      <div class="countdown-num" id="countdownNum">5</div>
+    </div>
+  </div>
+
   <!-- Control buttons -->
   <div class="track-btns">
     <button class="tbtn" onclick="undoStep()">↩ UNDO</button>
@@ -611,6 +635,8 @@ const COOLDOWN_MS = 700;           // min ms between counted steps
 const MOT_BUF_LEN = 18;            // motion history window
 const MIN_THRESH = 10;             // absolute minimum threshold
 const BELOW_THRESH_FACTOR = 2;    // below-line signal must be < MIN_THRESH × this to confirm both feet crossed
+const BELOW_QUIET_THRESHOLD = MIN_THRESH * BELOW_THRESH_FACTOR;
+const COUNTDOWN_SECS = 5;         // pre-tracking positioning countdown
 
 // ═══════════════════════════════════════════
 // STATE
@@ -620,7 +646,7 @@ const S = {}; // session
 const D = {}; // detection
 const R = {}; // recording
 
-let rafId = null, timerInt = null;
+let rafId = null, timerInt = null, countdownInt = null;
 let calibPreviewRaf = null;
 let frameCount = 0;
 let audioCtx = null;
@@ -1070,10 +1096,11 @@ function beginTracking() {
   S.remainingSecs = C.totalSecs;
   S.paused        = false;
   S.running       = true;
-  S.lastStepMs    = Date.now(); // prevent immediate count on start
+  S.lastStepMs    = 0;           // set at end of countdown
   S.stepActive    = false;
   S.stepPulse     = 0;
   S.stepGoingUp   = false;
+  S.countingDown  = true;        // blocks detection and timer until countdown ends
 
   // Detection state
   D.prevFrame    = null;
@@ -1101,16 +1128,52 @@ function beginTracking() {
   mainCanvas.addEventListener('touchmove',  onTouchMove,  { passive: false });
   mainCanvas.addEventListener('touchend',   onTouchEnd);
 
-  // Recording setup
-  if (C.recEnabled) setupRecording();
-
-  // Timer
-  timerInt = setInterval(timerTick, 1000);
-
-  // Render loop (start after fonts load)
+  // Render loop starts immediately so camera is visible during countdown
   document.fonts.ready.then(() => runLoop());
 
   requestWakeLock();
+
+  // 5-second positioning countdown before tracking begins
+  startCountdown();
+}
+
+// ═══════════════════════════════════════════
+// PRE-TRACKING COUNTDOWN
+// ═══════════════════════════════════════════
+function startCountdown() {
+  let secsLeft = COUNTDOWN_SECS;
+  const overlay = document.getElementById('countdownOverlay');
+  const numEl   = document.getElementById('countdownNum');
+  overlay.style.display = 'flex';
+  numEl.textContent = secsLeft;
+
+  // 4 beeps/second via 250 ms interval — interval handler fires handle all beeps evenly
+  let subTick = 0;
+
+  countdownInt = setInterval(() => {
+    subTick++;
+    playCountdownBeep();
+
+    if (subTick >= 4) {
+      subTick = 0;
+      secsLeft--;
+      if (secsLeft > 0) {
+        numEl.textContent = secsLeft;
+      } else {
+        clearInterval(countdownInt);
+        countdownInt = null;
+        numEl.textContent = 'GO!';
+        playCountdownGo();
+        setTimeout(() => {
+          overlay.style.display = 'none';
+          S.countingDown = false;
+          S.lastStepMs   = Date.now();
+          if (C.recEnabled) setupRecording();
+          timerInt = setInterval(timerTick, 1000);
+        }, 200);
+      }
+    }
+  }, 250);
 }
 
 // ── Line drag ──
@@ -1170,8 +1233,8 @@ function runLoop() {
     // ── 1. Camera feed ──
     mainCtx.drawImage(camVid, 0, 0, W, H);
 
-    // ── 2. Motion detection (every 2 frames) ──
-    if (!S.paused && frameCount % 2 === 0) {
+    // ── 2. Motion detection (every 2 frames — skipped during countdown) ──
+    if (!S.paused && !S.countingDown && frameCount % 2 === 0) {
       anaCtx.drawImage(camVid, 0, 0, AW, AH);
       const curr = anaCtx.getImageData(0, 0, AW, AH).data;
 
@@ -1201,7 +1264,7 @@ function runLoop() {
         D.motionSignal = (cnt > 0) ? bandMot / cnt : 0;
 
         // Below-line signal: both feet must have fully crossed above the line.
-        // Start one pixel after the detection band ends to avoid overlap.
+        // Detection band spans [anaLY - band, anaLY + band]; below starts at anaLY + band + 1.
         const belowY0 = Math.min(AH - 1, anaLY + band + 1);
         let belowMot = 0, belowCnt = 0;
         for (let y = belowY0; y < AH; y++) {
@@ -1216,7 +1279,7 @@ function runLoop() {
         D.belowSignal = (belowCnt > 0) ? belowMot / belowCnt : 0;
 
         // Above-line signal: used to determine crossing direction (up vs. down).
-        // aboveY1 is the last row to include before the detection band starts.
+        // Detection band spans [anaLY - band, anaLY + band]; above ends at anaLY - band - 1.
         const aboveY1 = Math.max(0, anaLY - band - 1);
         let aboveMot = 0, aboveCnt = 0;
         for (let y = 0; y <= aboveY1; y++) {
@@ -1247,7 +1310,7 @@ function runLoop() {
             S.stepGoingUp  = D.belowSignal > D.aboveSignal;
           } else if (S.stepActive && D.motionSignal < D.adaptThresh * 0.45) {
             S.stepActive = false;
-            if (S.stepGoingUp && D.belowSignal < MIN_THRESH * BELOW_THRESH_FACTOR) {
+            if (S.stepGoingUp && D.belowSignal < BELOW_QUIET_THRESHOLD) {
               countStep();
             }
           }
@@ -1318,8 +1381,8 @@ function runLoop() {
     // ── 5. HUD Text (drawn on main canvas for live view) ──
     drawHUD(W, H, mainCtx);
 
-    // ── 6. PAUSED overlay ──
-    if (S.paused) {
+    // ── 6. PAUSED overlay (not shown during countdown — countdown has its own overlay) ──
+    if (S.paused && !S.countingDown) {
       mainCtx.fillStyle = 'rgba(5,8,15,0.55)';
       mainCtx.fillRect(0, 0, W, H);
       mainCtx.fillStyle = '#fff';
@@ -1441,7 +1504,7 @@ function parseTimeStr(s) {
 // STEP COUNTING
 // ═══════════════════════════════════════════
 function countStep() {
-  if (!S.running || S.paused) return;
+  if (!S.running || S.paused || S.countingDown) return;
   S.steps++;
   S.lastStepMs = Date.now();
   S.stepPulse  = 1;
@@ -1490,7 +1553,7 @@ function undoStep() {
 // TIMER
 // ═══════════════════════════════════════════
 function timerTick() {
-  if (S.paused) return;
+  if (S.paused || S.countingDown) return;
   S.remainingSecs--;
   if (S.remainingSecs <= 0) endSession(false);
 }
@@ -1517,6 +1580,8 @@ function confirmStop() {
 // ═══════════════════════════════════════════
 async function endSession(goalReached) {
   S.running = false;
+  S.countingDown = false;
+  if (countdownInt) { clearInterval(countdownInt); countdownInt = null; }
   clearInterval(timerInt);
   cancelAnimationFrame(rafId);
 
@@ -1613,6 +1678,42 @@ function restart() {
 // ═══════════════════════════════════════════
 // AUDIO
 // ═══════════════════════════════════════════
+function playCountdownBeep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.type = 'sine';
+    o.frequency.value = 660;
+    g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.055);
+    o.start(); o.stop(audioCtx.currentTime + 0.055);
+  } catch(e) {}
+}
+
+function playCountdownGo() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime;
+    // Short-short-long sequence: "beep beep BEEEP" = GO signal
+    [
+      { freq: 880,  start: 0,    dur: 0.08, gain: 0.22 },
+      { freq: 880,  start: 0.13, dur: 0.08, gain: 0.22 },
+      { freq: 1174, start: 0.25, dur: 0.55, gain: 0.28 },
+    ].forEach(({ freq, start, dur, gain }) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0, t + start);
+      g.gain.linearRampToValueAtTime(gain, t + start + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, t + start + dur);
+      o.start(t + start);
+      o.stop(t + start + dur);
+    });
+  } catch(e) {}
+}
+
 function playTick() {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
