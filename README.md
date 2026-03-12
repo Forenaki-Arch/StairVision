@@ -34,29 +34,9 @@
 
 The algorithm compares RGB pixel differences between consecutive frames within the detection band. An adaptive threshold is computed from a rolling average of recent motion values multiplied by the sensitivity factor. A state machine transitions from idle → active (motion above threshold) → counted (motion drops below 45% of threshold), with a 700 ms cooldown to prevent double-counting.
 
-## Getting Started
+## Try It
 
-### Run Locally
-
-Serve the files over HTTP (camera access requires HTTPS or localhost):
-
-```bash
-# Using Python
-python -m http.server 8000
-
-# Using Node.js
-npx serve .
-```
-
-Then open [http://localhost:8000](http://localhost:8000) on your phone or desktop browser.
-
-### Deploy to Vercel
-
-1. Push this repository to GitHub.
-2. Import the repo in [vercel.com/new](https://vercel.com/new).
-3. Deploy — no build step needed. Vercel serves the static files directly.
-
-The included `vercel.json` configures proper headers for the service worker and camera permissions.
+The app is live at **[https://stair-vision.vercel.app/](https://stair-vision.vercel.app/)** — open it on your phone and install it to your home screen for the best experience. No installation or build step required.
 
 ## Project Structure
 
