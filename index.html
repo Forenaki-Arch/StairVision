@@ -27,6 +27,77 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}
 .screen.off{display:none!important}
 
+/* ── LANDING PAGE ── */
+#s-landing{background:var(--bg);align-items:center;justify-content:center;overflow:hidden}
+#landingCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.landing-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px 20px;padding-bottom:80px}
+.landing-logo{text-align:center;margin-bottom:48px}
+.landing-logo .brand{font-family:'Michroma',sans-serif;font-size:42px;letter-spacing:8px;color:var(--accent);line-height:1}
+.landing-logo .brand em{color:#fff;font-style:normal}
+.landing-logo .brand-tag{font-size:10px;letter-spacing:5px;color:var(--muted);text-transform:uppercase;margin-top:10px}
+.landing-logo-icon{margin-bottom:18px}
+.landing-logo-icon svg{width:72px;height:72px;filter:drop-shadow(0 0 18px rgba(0,255,195,0.35))}
+
+/* Animated glow button */
+.glow-btn-wrap{position:relative;width:280px;height:62px;margin-top:10px}
+.glow-btn-border{position:absolute;inset:-3px;border-radius:18px;padding:3px;overflow:hidden;z-index:0}
+.glow-btn-border::before{
+  content:'';position:absolute;inset:-50%;width:200%;height:200%;
+  background:conic-gradient(from 0deg,transparent 0%,var(--accent) 10%,transparent 20%,transparent 50%,var(--accent) 60%,transparent 70%);
+  animation:spinGlow 2.5s linear infinite;
+}
+@keyframes spinGlow{to{transform:rotate(360deg)}}
+.glow-btn-inner{position:absolute;inset:3px;border-radius:15px;background:var(--bg);z-index:1}
+.glow-btn{
+  position:relative;z-index:2;width:100%;height:100%;border:none;border-radius:15px;
+  background:rgba(0,255,195,0.08);color:var(--accent);
+  font-family:'Michroma',sans-serif;font-size:15px;letter-spacing:4px;
+  cursor:pointer;-webkit-appearance:none;transition:background .2s;
+}
+.glow-btn:active{background:rgba(0,255,195,0.18)}
+
+/* Bottom tabs */
+.bottom-tabs{
+  position:absolute;bottom:0;left:0;right:0;z-index:2;
+  display:flex;background:rgba(5,8,15,0.95);border-top:1px solid var(--border);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.tab-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 0 8px;background:none;border:none;color:var(--muted);
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;
+  text-transform:uppercase;cursor:pointer;-webkit-appearance:none;transition:color .2s;
+}
+.tab-btn.active{color:var(--accent)}
+.tab-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── HISTORY ── */
+#s-history{overflow-y:auto;background:var(--bg);padding:24px 18px 90px;align-items:center;gap:0}
+#s-history::before{
+  content:'';position:fixed;top:0;left:0;right:0;height:180px;
+  background:radial-gradient(ellipse at 50% -20%,rgba(0,255,195,0.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hist-header{font-family:'Michroma',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);margin-bottom:6px;text-align:center;width:100%}
+.hist-sub{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:22px;text-align:center;width:100%}
+.hist-empty{text-align:center;color:var(--muted);font-size:12px;margin-top:40px;line-height:2}
+.hist-list{width:100%;max-width:420px;display:flex;flex-direction:column;gap:10px}
+.hist-card{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;width:100%;
+}
+.hist-card-title{font-family:'Michroma',sans-serif;font-size:14px;letter-spacing:2px;color:var(--text);margin-bottom:4px}
+.hist-card-date{font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:10px}
+.hist-card-stats{display:flex;gap:14px;flex-wrap:wrap}
+.hist-stat{display:flex;flex-direction:column;gap:2px}
+.hist-stat-val{font-family:'Michroma',sans-serif;font-size:16px;color:var(--accent)}
+.hist-stat-lbl{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.hist-card-result{display:inline-block;font-family:'Michroma',sans-serif;font-size:10px;letter-spacing:2px;padding:3px 8px;border-radius:6px;margin-top:8px}
+.hist-card-result.win{background:rgba(0,255,195,0.12);color:var(--accent)}
+.hist-card-result.close{background:rgba(255,107,0,0.12);color:var(--accent2)}
+.hist-card-result.lose{background:rgba(255,51,85,0.12);color:var(--danger)}
+
 /* ── SETUP ── */
 #s-setup{overflow-y:auto;background:var(--bg);padding:28px 22px 50px;align-items:center;gap:0}
 #s-setup::before{
@@ -80,6 +151,10 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
 }
 .go-btn:active{opacity:.8}
 .go-btn.sec{background:var(--card);color:var(--text);border:1px solid var(--border);margin-top:10px;font-size:14px;letter-spacing:2px}
+
+.session-info{width:100%;max-width:380px;margin-bottom:24px;text-align:center}
+.session-name{font-family:'Michroma',sans-serif;font-size:16px;letter-spacing:3px;color:var(--accent);margin-bottom:4px}
+.session-date{font-size:10px;letter-spacing:2px;color:var(--muted)}
 
 /* ── CALIBRATION ── */
 #s-calib{background:#000}
@@ -172,20 +247,74 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
 /* Hidden elements */
 #camVid{display:none}
 #anaCanvas{display:none}
+#recCanvas{display:none}
 </style>
 </head>
 <body>
 
+<!-- ════════════════ LANDING ════════════════ -->
+<div id="s-landing" class="screen">
+  <canvas id="landingCanvas"></canvas>
+  <div class="landing-content">
+    <div class="landing-logo">
+      <div class="landing-logo-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="72" height="72">
+          <g stroke="#00ffc3" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="36,156 36,120 72,120 72,84 108,84 108,48 144,48 144,36"/>
+          </g>
+          <g transform="translate(96,96)" fill="none" stroke="#00ffc3" stroke-width="3">
+            <ellipse rx="30" ry="18" opacity="0.6"/>
+            <circle r="9" fill="#00ffc3" opacity="0.8"/>
+          </g>
+        </svg>
+      </div>
+      <div class="brand">STAIR<em>VISION</em></div>
+      <div class="brand-tag">Computer Vision Step Counter</div>
+    </div>
+    <div class="glow-btn-wrap">
+      <div class="glow-btn-border"><div class="glow-btn-inner"></div></div>
+      <button class="glow-btn" onclick="startNewSession()">START SESSION</button>
+    </div>
+  </div>
+  <div class="bottom-tabs">
+    <button class="tab-btn active" onclick="showTab('landing')">
+      <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+      Home
+    </button>
+    <button class="tab-btn" onclick="showTab('history')">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      History
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════ HISTORY ════════════════ -->
+<div id="s-history" class="screen off">
+  <div class="hist-header">HISTORY</div>
+  <div class="hist-sub">Past Sessions</div>
+  <div class="hist-list" id="histList"></div>
+  <div class="bottom-tabs">
+    <button class="tab-btn" onclick="showTab('landing')">
+      <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+      Home
+    </button>
+    <button class="tab-btn active" onclick="showTab('history')">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      History
+    </button>
+  </div>
+</div>
+
 <!-- ════════════════ SETUP ════════════════ -->
-<div id="s-setup" class="screen">
+<div id="s-setup" class="screen off">
   <div class="brand-wrap">
     <div class="brand">STAIR<em>VISION</em></div>
     <div class="brand-tag">Computer Vision Step Counter</div>
   </div>
 
-  <div class="field">
-    <div class="flabel">Session Name</div>
-    <input class="finput txt" id="objName" type="text" value="1000 STAIR STEPS" maxlength="30">
+  <div class="session-info">
+    <div class="session-name" id="sessionLabel"></div>
+    <div class="session-date" id="sessionDate"></div>
   </div>
 
   <div class="field">
@@ -218,6 +347,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
   </div>
 
   <button class="go-btn" onclick="goToCalib()">OPEN CAMERA →</button>
+  <button class="go-btn sec" onclick="backToLanding()">← BACK</button>
 </div>
 
 <!-- ════════════════ CALIBRATION ════════════════ -->
@@ -291,6 +421,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
 <!-- ════ HIDDEN ELEMENTS ════ -->
 <video id="camVid" playsinline muted autoplay></video>
 <canvas id="anaCanvas" width="160" height="90"></canvas>
+<canvas id="recCanvas"></canvas>
 
 <script>
 // ═══════════════════════════════════════════
@@ -315,18 +446,194 @@ let calibPreviewRaf = null;
 let frameCount = 0;
 let audioCtx = null;
 let draggingLine = false;
+let landingRaf = null;
 
 const camVid    = document.getElementById('camVid');
 const anaCanvas = document.getElementById('anaCanvas');
 const anaCtx    = anaCanvas.getContext('2d', { willReadFrequently: true });
 let calibCanvas, calibCtx, mainCanvas, mainCtx;
+let recCanvas, recCtx; // separate recording canvas (no CV lines)
+
+// ═══════════════════════════════════════════
+// SESSION STORAGE
+// ═══════════════════════════════════════════
+function getSessionHistory() {
+  try { return JSON.parse(localStorage.getItem('sv_sessions') || '[]'); } catch(e) { return []; }
+}
+function saveSession(entry) {
+  const hist = getSessionHistory();
+  hist.unshift(entry);
+  try { localStorage.setItem('sv_sessions', JSON.stringify(hist)); } catch(e) {}
+}
+function getNextSessionNumber() {
+  return getSessionHistory().length + 1;
+}
+function fmtDateDDMMYY(d) {
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${dd}/${mm}/${yy}`;
+}
+function fmtDateTime(d) {
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yy = String(d.getFullYear()).slice(-2);
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mi = String(d.getMinutes()).padStart(2,'0');
+  return `${dd}/${mm}/${yy} ${hh}:${mi}`;
+}
 
 // ═══════════════════════════════════════════
 // SCREEN MANAGER
 // ═══════════════════════════════════════════
 function show(id) {
-  ['s-setup','s-calib','s-track','s-review'].forEach(s =>
+  ['s-landing','s-history','s-setup','s-calib','s-track','s-review'].forEach(s =>
     document.getElementById(s).classList.toggle('off', s !== id));
+}
+
+function showTab(tab) {
+  if (tab === 'landing') {
+    show('s-landing');
+    startLandingAnimation();
+  } else if (tab === 'history') {
+    show('s-history');
+    stopLandingAnimation();
+    renderHistory();
+  }
+}
+
+function backToLanding() {
+  show('s-landing');
+  startLandingAnimation();
+}
+
+// ═══════════════════════════════════════════
+// LANDING PAGE ANIMATION
+// ═══════════════════════════════════════════
+const particles = [];
+function initParticles(canvas) {
+  particles.length = 0;
+  const count = 60;
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.8 + 0.3,
+      dx: (Math.random() - 0.5) * 0.4,
+      dy: (Math.random() - 0.5) * 0.3 - 0.15,
+      a: Math.random() * 0.5 + 0.1
+    });
+  }
+}
+function drawLanding() {
+  const canvas = document.getElementById('landingCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#05080f';
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle radial gradient
+  const rg = ctx.createRadialGradient(W/2, H*0.35, 0, W/2, H*0.35, W*0.7);
+  rg.addColorStop(0, 'rgba(0,255,195,0.04)');
+  rg.addColorStop(1, 'transparent');
+  ctx.fillStyle = rg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Particles
+  for (const p of particles) {
+    p.x += p.dx;
+    p.y += p.dy;
+    if (p.x < 0) p.x = W;
+    if (p.x > W) p.x = 0;
+    if (p.y < 0) p.y = H;
+    if (p.y > H) p.y = 0;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(0,255,195,${p.a})`;
+    ctx.fill();
+  }
+
+  // Connection lines between close particles
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 100) {
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = `rgba(0,255,195,${0.06 * (1 - dist/100)})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+
+  landingRaf = requestAnimationFrame(drawLanding);
+}
+function startLandingAnimation() {
+  const canvas = document.getElementById('landingCanvas');
+  if (!canvas) return;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  if (particles.length === 0) initParticles(canvas);
+  if (!landingRaf) drawLanding();
+}
+function stopLandingAnimation() {
+  if (landingRaf) { cancelAnimationFrame(landingRaf); landingRaf = null; }
+}
+
+// ═══════════════════════════════════════════
+// HISTORY RENDERING
+// ═══════════════════════════════════════════
+function renderHistory() {
+  const list = document.getElementById('histList');
+  const hist = getSessionHistory();
+  if (hist.length === 0) {
+    list.innerHTML = '<div class="hist-empty">No sessions yet.<br>Start your first session!</div>';
+    return;
+  }
+  list.innerHTML = hist.map(s => {
+    const resultClass = s.goalReached ? 'win' : (s.pct >= 75 ? 'close' : 'lose');
+    const resultText = s.goalReached ? '🏆 GOAL' : (s.pct >= 75 ? '💪 CLOSE' : '😤 RETRY');
+    return `<div class="hist-card">
+      <div class="hist-card-title">${escapeHtml(s.name)}</div>
+      <div class="hist-card-date">Started: ${escapeHtml(s.startedAt)} · Completed: ${escapeHtml(s.completedAt)}</div>
+      <div class="hist-card-stats">
+        <div class="hist-stat"><span class="hist-stat-val">${Number(s.steps)||0}/${Number(s.target)||0}</span><span class="hist-stat-lbl">Steps</span></div>
+        <div class="hist-stat"><span class="hist-stat-val">${Number(s.pct)||0}%</span><span class="hist-stat-lbl">Done</span></div>
+        <div class="hist-stat"><span class="hist-stat-val">${escapeHtml(s.time)}</span><span class="hist-stat-lbl">Time</span></div>
+        <div class="hist-stat"><span class="hist-stat-val">${escapeHtml(s.rate)}</span><span class="hist-stat-lbl">Steps/min</span></div>
+      </div>
+      <div class="hist-card-result ${resultClass}">${resultText}</div>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ═══════════════════════════════════════════
+// START NEW SESSION
+// ═══════════════════════════════════════════
+function startNewSession() {
+  stopLandingAnimation();
+  const num = getNextSessionNumber();
+  const now = new Date();
+  C.sessionNum = num;
+  C.objName = `Session ${num} ${fmtDateDDMMYY(now)}`;
+  C.startedAt = now;
+
+  document.getElementById('sessionLabel').textContent = C.objName;
+  document.getElementById('sessionDate').textContent = fmtDateTime(now);
+
+  show('s-setup');
 }
 
 // ═══════════════════════════════════════════
@@ -383,7 +690,6 @@ async function goToCalib() {
   const m = parseInt(document.getElementById('timeM').value)||0;
   C.totalSecs   = h*3600 + m*60;
   C.targetSteps = parseInt(document.getElementById('targetSteps').value)||1000;
-  C.objName     = document.getElementById('objName').value.trim() || `${C.targetSteps} STEPS`;
   C.recEnabled  = document.getElementById('recToggle').checked;
   C.sensitivity = parseFloat(document.getElementById('sens').value)||1.8;
 
@@ -549,6 +855,12 @@ function beginTracking() {
   mainCanvas.width  = window.innerWidth;
   mainCanvas.height = window.innerHeight;
 
+  // Recording canvas (same size, used for video export without CV lines)
+  recCanvas = document.getElementById('recCanvas');
+  recCtx    = recCanvas.getContext('2d');
+  recCanvas.width  = mainCanvas.width;
+  recCanvas.height = mainCanvas.height;
+
   // Touch to drag detection line
   mainCanvas.addEventListener('touchstart', onTouchStart, { passive: false });
   mainCanvas.addEventListener('touchmove',  onTouchMove,  { passive: false });
@@ -589,7 +901,7 @@ function onTouchEnd() {
 }
 
 // ═══════════════════════════════════════════
-// RECORDING
+// RECORDING (capture from recCanvas — no CV lines)
 // ═══════════════════════════════════════════
 function setupRecording() {
   try {
@@ -597,7 +909,7 @@ function setupRecording() {
     let mt = '';
     for (const t of types) { if (MediaRecorder.isTypeSupported(t)) { mt = t; break; } }
     R.chunks = [];
-    R.stream = mainCanvas.captureStream(24);
+    R.stream = recCanvas.captureStream(24);
     R.mr = new MediaRecorder(R.stream, { mimeType: mt, videoBitsPerSecond: 2000000 });
     R.mr.ondataavailable = e => { if (e.data.size > 0) R.chunks.push(e.data); };
     R.mr.start(500);
@@ -673,7 +985,22 @@ function runLoop() {
       D.prevFrame = new Uint8ClampedArray(curr);
     }
 
-    // ── 3. Detection line ──
+    // ── 3. Recording canvas: camera + HUD only (no CV lines) ──
+    if (C.recEnabled && recCtx) {
+      recCtx.drawImage(camVid, 0, 0, W, H);
+      drawHUD(W, H, recCtx);
+      if (S.paused) {
+        recCtx.fillStyle = 'rgba(5,8,15,0.55)';
+        recCtx.fillRect(0, 0, W, H);
+        recCtx.fillStyle = '#fff';
+        recCtx.font = `bold ${W*0.12}px Michroma, sans-serif`;
+        recCtx.textAlign = 'center';
+        recCtx.textBaseline = 'middle';
+        recCtx.fillText('PAUSED', W/2, H/2);
+      }
+    }
+
+    // ── 4. Detection line (live display only, not in recording) ──
     if (S.stepPulse > 0) S.stepPulse = Math.max(0, S.stepPulse - 0.04);
     const ly = D.lineY * H;
     const glow = 6 + S.stepPulse * 28;
@@ -717,10 +1044,10 @@ function runLoop() {
       });
     }
 
-    // ── 4. HUD Text (drawn on canvas → included in recording) ──
-    drawHUD(W, H);
+    // ── 5. HUD Text (drawn on main canvas for live view) ──
+    drawHUD(W, H, mainCtx);
 
-    // ── 5. PAUSED overlay ──
+    // ── 6. PAUSED overlay ──
     if (S.paused) {
       mainCtx.fillStyle = 'rgba(5,8,15,0.55)';
       mainCtx.fillRect(0, 0, W, H);
@@ -734,32 +1061,32 @@ function runLoop() {
   rafId = requestAnimationFrame(loop);
 }
 
-function drawHUD(W, H) {
-  mainCtx.save();
+function drawHUD(W, H, ctx) {
+  ctx.save();
 
   // Top gradient bar
-  const topGrad = mainCtx.createLinearGradient(0,0,0,H*0.22);
+  const topGrad = ctx.createLinearGradient(0,0,0,H*0.22);
   topGrad.addColorStop(0, 'rgba(5,8,15,0.85)');
   topGrad.addColorStop(1, 'rgba(5,8,15,0)');
-  mainCtx.fillStyle = topGrad;
-  mainCtx.fillRect(0, 0, W, H*0.22);
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(0, 0, W, H*0.22);
 
-  // Timer — top left
+  // Timer — top left (reduced font size: 0.08 instead of 0.115)
   const rem = S.remainingSecs;
   const timerColor = rem <= 60 ? '#ff3355' : rem <= 300 ? '#ff6b00' : '#e8edf8';
-  mainCtx.fillStyle = timerColor;
-  mainCtx.font = `${Math.round(W*0.115)}px Michroma, Impact, sans-serif`;
-  mainCtx.textAlign = 'left';
-  mainCtx.textBaseline = 'top';
-  mainCtx.shadowColor = timerColor;
-  mainCtx.shadowBlur  = rem <= 60 ? 12 : 0;
-  mainCtx.fillText(fmtTime(rem), W*0.04, H*0.025);
-  mainCtx.shadowBlur = 0;
+  ctx.fillStyle = timerColor;
+  ctx.font = `${Math.round(W*0.08)}px Michroma, Impact, sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.shadowColor = timerColor;
+  ctx.shadowBlur  = rem <= 60 ? 12 : 0;
+  ctx.fillText(fmtTime(rem), W*0.04, H*0.025);
+  ctx.shadowBlur = 0;
 
   // "REMAINING" label
-  mainCtx.fillStyle = 'rgba(255,255,255,0.35)';
-  mainCtx.font = `${Math.round(W*0.03)}px Share Tech Mono, monospace`;
-  mainCtx.fillText('REMAINING', W*0.04, H*0.025 + W*0.125);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = `${Math.round(W*0.028)}px Share Tech Mono, monospace`;
+  ctx.fillText('REMAINING', W*0.04, H*0.025 + W*0.09);
 
   // Steps/min — top right
   const elapsed = C.totalSecs - S.remainingSecs;
@@ -777,58 +1104,58 @@ function drawHUD(W, H) {
     } else { etaStr = '✓'; }
   }
 
-  mainCtx.fillStyle = 'rgba(255,255,255,0.35)';
-  mainCtx.font = `${Math.round(W*0.03)}px Share Tech Mono, monospace`;
-  mainCtx.textAlign = 'right';
-  mainCtx.fillText('STEPS/MIN', W*0.97, H*0.025);
-  mainCtx.fillStyle = '#e8edf8';
-  mainCtx.font = `${Math.round(W*0.075)}px Michroma, Impact, sans-serif`;
-  mainCtx.fillText(rateStr, W*0.97, H*0.025 + W*0.033);
-  mainCtx.fillStyle = 'rgba(255,255,255,0.35)';
-  mainCtx.font = `${Math.round(W*0.03)}px Share Tech Mono, monospace`;
-  mainCtx.fillText('ETA', W*0.97, H*0.025 + W*0.033 + W*0.08);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = `${Math.round(W*0.028)}px Share Tech Mono, monospace`;
+  ctx.textAlign = 'right';
+  ctx.fillText('STEPS/MIN', W*0.97, H*0.025);
+  ctx.fillStyle = '#e8edf8';
+  ctx.font = `${Math.round(W*0.065)}px Michroma, Impact, sans-serif`;
+  ctx.fillText(rateStr, W*0.97, H*0.025 + W*0.03);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = `${Math.round(W*0.028)}px Share Tech Mono, monospace`;
+  ctx.fillText('ETA', W*0.97, H*0.025 + W*0.03 + W*0.07);
   const etaGood = etaStr !== '—' && etaStr !== '✓' && S.remainingSecs > 0 &&
     parseTimeStr(etaStr) <= S.remainingSecs;
-  mainCtx.fillStyle = etaStr === '✓' ? '#00ff88' : (etaGood ? '#00ffc3' : '#ff3355');
-  mainCtx.font = `${Math.round(W*0.055)}px Michroma, Impact, sans-serif`;
-  mainCtx.fillText(etaStr, W*0.97, H*0.025 + W*0.033 + W*0.08 + W*0.033);
+  ctx.fillStyle = etaStr === '✓' ? '#00ff88' : (etaGood ? '#00ffc3' : '#ff3355');
+  ctx.font = `${Math.round(W*0.048)}px Michroma, Impact, sans-serif`;
+  ctx.fillText(etaStr, W*0.97, H*0.025 + W*0.03 + W*0.07 + W*0.03);
 
   // Big step count — center
   const pulse = S.stepPulse;
   const scale = 1 + pulse * 0.06;
   const countSize = Math.min(W*0.38, H*0.22);
-  mainCtx.save();
-  mainCtx.translate(W/2, H*0.46);
-  mainCtx.scale(scale, scale);
-  mainCtx.shadowColor = '#00ffc3';
-  mainCtx.shadowBlur  = 10 + pulse * 40;
-  mainCtx.fillStyle   = '#00ffc3';
-  mainCtx.font        = `${countSize}px Michroma, Impact, sans-serif`;
-  mainCtx.textAlign   = 'center';
-  mainCtx.textBaseline= 'middle';
-  mainCtx.fillText(S.steps, 0, 0);
-  mainCtx.restore();
+  ctx.save();
+  ctx.translate(W/2, H*0.46);
+  ctx.scale(scale, scale);
+  ctx.shadowColor = '#00ffc3';
+  ctx.shadowBlur  = 10 + pulse * 40;
+  ctx.fillStyle   = '#00ffc3';
+  ctx.font        = `${countSize}px Michroma, Impact, sans-serif`;
+  ctx.textAlign   = 'center';
+  ctx.textBaseline= 'middle';
+  ctx.fillText(S.steps, 0, 0);
+  ctx.restore();
 
   // "of N steps" sub-label
-  mainCtx.shadowBlur = 0;
-  mainCtx.fillStyle  = 'rgba(255,255,255,0.4)';
-  mainCtx.font       = `${W*0.032}px Share Tech Mono, monospace`;
-  mainCtx.textAlign  = 'center';
-  mainCtx.textBaseline = 'top';
-  mainCtx.fillText(`of ${C.targetSteps} steps`, W/2, H*0.46 + countSize*0.56);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle  = 'rgba(255,255,255,0.4)';
+  ctx.font       = `${W*0.032}px Share Tech Mono, monospace`;
+  ctx.textAlign  = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(`of ${C.targetSteps} steps`, W/2, H*0.46 + countSize*0.56);
 
   // Progress bar (bottom of HUD area, above buttons)
   const pct = Math.min(1, S.steps / C.targetSteps);
   const barY = H - H*0.185;
-  mainCtx.fillStyle = 'rgba(255,255,255,0.07)';
-  mainCtx.fillRect(0, barY, W, 3);
-  const pbGrad = mainCtx.createLinearGradient(0,0,W*pct,0);
+  ctx.fillStyle = 'rgba(255,255,255,0.07)';
+  ctx.fillRect(0, barY, W, 3);
+  const pbGrad = ctx.createLinearGradient(0,0,W*pct,0);
   pbGrad.addColorStop(0, '#00ffc3');
   pbGrad.addColorStop(1, '#00ff88');
-  mainCtx.fillStyle = pbGrad;
-  mainCtx.fillRect(0, barY, W*pct, 3);
+  ctx.fillStyle = pbGrad;
+  ctx.fillRect(0, barY, W*pct, 3);
 
-  mainCtx.restore();
+  ctx.restore();
 }
 
 function parseTimeStr(s) {
@@ -913,6 +1240,24 @@ async function endSession(goalReached) {
     R.blob = new Blob(R.chunks, { type: R.chunks[0]?.type || 'video/webm' });
   }
 
+  // Save session to history
+  const elapsed = C.totalSecs - S.remainingSecs;
+  const pct     = Math.round((S.steps / C.targetSteps) * 100);
+  const rate    = elapsed > 0 ? ((S.steps / elapsed) * 60).toFixed(1) : '—';
+  const completedAt = new Date();
+
+  saveSession({
+    name: C.objName,
+    steps: S.steps,
+    target: C.targetSteps,
+    pct: pct,
+    time: fmtTime(elapsed),
+    rate: rate,
+    goalReached: goalReached,
+    startedAt: fmtDateTime(C.startedAt),
+    completedAt: fmtDateTime(completedAt)
+  });
+
   showReview(goalReached);
 }
 
@@ -970,7 +1315,8 @@ function restart() {
     camVid.srcObject = null;
   }
   S.stepMarkers = [];
-  show('s-setup');
+  show('s-landing');
+  startLandingAnimation();
 }
 
 // ═══════════════════════════════════════════
@@ -1004,6 +1350,17 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   });
 }
+
+// Start landing animation on load
+window.addEventListener('load', () => startLandingAnimation());
+window.addEventListener('resize', () => {
+  const canvas = document.getElementById('landingCanvas');
+  if (canvas && !document.getElementById('s-landing').classList.contains('off')) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    initParticles(canvas);
+  }
+});
 </script>
 </body>
 </html>
