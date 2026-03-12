@@ -1312,18 +1312,18 @@ function runLoop() {
 
           // State machine: idle → in-progress → cleared = 1 step.
           // Line is placed at the top edge of the stair.
-          // A step is "in progress" while any part of the body is still at or below the line.
-          // The count triggers only on the transition to being fully cleared above the line:
-          //   both the band motion must subside AND the below-line region must be quiet.
+          // A step is "in progress" when significant band motion is detected.
+          // The count triggers when band motion subsides AND either the
+          // below-line or above-line region is quiet — this allows counting
+          // steps in both directions (up AND down) for stair exercises.
           const now = Date.now();
           if (!S.stepActive && D.motionSignal > D.adaptThresh && now - S.lastStepMs > COOLDOWN_MS) {
             S.stepActive   = true;
             S.stepGoingUp  = D.belowSignal > D.aboveSignal;
-          } else if (S.stepActive && D.belowSignal < BELOW_QUIET_THRESHOLD && D.motionSignal < D.adaptThresh * 0.45) {
+          } else if (S.stepActive && D.motionSignal < D.adaptThresh * 0.45 &&
+                     (D.belowSignal < BELOW_QUIET_THRESHOLD || D.aboveSignal < BELOW_QUIET_THRESHOLD)) {
             S.stepActive = false;
-            if (S.stepGoingUp) {
-              countStep();
-            }
+            countStep();
           }
         }
       }

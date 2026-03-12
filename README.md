@@ -45,12 +45,12 @@ Open the link on your phone — that's it. No install, no build step, no account
 | Pre-tracking countdown | 5 s, 4 beeps/s (20 total) + GO! signal |
 | Shake rejection | Global motion > 30 is ignored |
 | Below-line threshold | Average pixel motion < `MIN_THRESH` × `BELOW_THRESH_FACTOR` |
-| Direction detection | `D.belowSignal > D.aboveSignal` at step activation → going up |
+| Direction detection | Both up and down steps are counted; `D.belowSignal > D.aboveSignal` at activation determines direction |
 | Recorded video | Camera feed + HUD only; detection line and CV overlays excluded |
 
 The algorithm compares RGB pixel differences between consecutive frames within the detection band. An adaptive threshold is computed from a rolling average of recent motion values multiplied by the sensitivity factor. A state machine transitions from idle → active (motion above threshold) → counted (motion drops below 45% of threshold).
 
-When a step activates, the app also samples motion above the line (`D.aboveSignal`) and below the line (`D.belowSignal`). If the below region has more motion, the body is rising (going **up**) and `S.stepGoingUp` is set to `true`; otherwise the crossing is downward and the pending step is discarded. A step is only finalised when `S.stepGoingUp` is true *and* the below-line region is quiet (average pixel change < `MIN_THRESH` × `BELOW_THRESH_FACTOR`), ensuring both feet have crossed upward and preventing duplicate, triplicate, or descending counts. A 700 ms cooldown provides an additional guard.
+When a step activates, the app also samples motion above the line (`D.aboveSignal`) and below the line (`D.belowSignal`). If the below region has more motion, the body is rising (going **up**) and `S.stepGoingUp` is set to `true`. A step is finalised when the band motion drops below 45 % of the adaptive threshold *and* either the below-line or above-line region is quiet (average pixel change < `MIN_THRESH` × `BELOW_THRESH_FACTOR`). This allows counting steps in **both directions** (up and down), which is essential for stair exercises. A 700 ms cooldown provides an additional guard against duplicate counts.
 
 ## Browser Requirements
 
