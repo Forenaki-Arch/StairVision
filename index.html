@@ -432,6 +432,13 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
       </div>
       <label class="switch"><input type="checkbox" id="sndToggle" checked onchange="saveSetting('sound',this.checked)"><span class="knob"></span></label>
     </div>
+    <div class="settings-item">
+      <div class="settings-item-text">
+        <div class="settings-item-title">Milestone Sound Interval (%)</div>
+        <div class="settings-item-desc">Chime every N% of goal reached (0 = off)</div>
+      </div>
+      <input class="finput sm" id="milestoneInterval" type="number" value="10" min="0" max="50" inputmode="numeric" style="width:70px;text-align:center" onchange="saveSetting('milestoneInterval',+this.value)">
+    </div>
   </div>
 
   <div class="settings-group">
@@ -858,6 +865,7 @@ function loadSettings() {
   document.getElementById('defTime').value = s.defTime || 120;
   document.getElementById('vibToggle').checked = s.vibration !== false;
   document.getElementById('sndToggle').checked = s.sound !== false;
+  document.getElementById('milestoneInterval').value = s.milestoneInterval !== undefined ? s.milestoneInterval : 10;
 }
 function clearAllHistory() {
   if (!confirm('Delete ALL session history? This cannot be undone.')) return;
@@ -1433,8 +1441,27 @@ function countStep() {
 
   const settings = getSettings();
   if (settings.vibration !== false && navigator.vibrate) navigator.vibrate(25);
-  if (settings.sound !== false) playTick();
-  if (S.steps >= C.targetSteps) endSession(true);
+  const goalReached = S.steps >= C.targetSteps;
+  if (settings.sound !== false) {
+    if (goalReached) {
+      playGoal();
+    } else {
+      const milestoneInterval = +settings.milestoneInterval;
+      const interval = (milestoneInterval > 0 && milestoneInterval <= 50) ? milestoneInterval : 0;
+      if (interval && C.targetSteps > 0) {
+        const prevPct = Math.floor(((S.steps - 1) / C.targetSteps) * 100);
+        const currPct = Math.floor((S.steps / C.targetSteps) * 100);
+        if (Math.floor(currPct / interval) > Math.floor(prevPct / interval)) {
+          playMilestone();
+        } else {
+          playTick();
+        }
+      } else {
+        playTick();
+      }
+    }
+  }
+  if (goalReached) endSession(true);
 }
 
 function manualStep() {
@@ -1585,6 +1612,42 @@ function playTick() {
     g.gain.setValueAtTime(0.18, audioCtx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.07);
     o.start(); o.stop(audioCtx.currentTime + 0.07);
+  } catch(e) {}
+}
+
+function playMilestone() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime;
+    [880, 1320].forEach((freq, i) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0, t + i * 0.1);
+      g.gain.linearRampToValueAtTime(0.22, t + i * 0.1 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.13);
+      o.start(t + i * 0.1);
+      o.stop(t + i * 0.1 + 0.13);
+    });
+  } catch(e) {}
+}
+
+function playGoal() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime;
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0, t + i * 0.12);
+      g.gain.linearRampToValueAtTime(0.25, t + i * 0.12 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 0.22);
+      o.start(t + i * 0.12);
+      o.stop(t + i * 0.12 + 0.22);
+    });
   } catch(e) {}
 }
 
