@@ -547,6 +547,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
       <div class="calib-bar-wrap" id="calibBarWrap"><div class="calib-bar" id="calibBar"></div></div>
       <div class="calib-st" id="calibSt">Camera ready ·  tap to begin</div>
       <button class="go-btn" id="calibBtn" onclick="startCalib()">START CALIBRATION</button>
+      <button class="go-btn sec" id="flipCamBtn" aria-label="Switch camera" onclick="switchCamera()">⟳ REAR CAM</button>
       <button class="go-btn sec" onclick="skipCalib()">SKIP → USE MANUAL TAP</button>
     </div>
   </div>
@@ -629,6 +630,7 @@ let frameCount = 0;
 let audioCtx = null;
 let draggingLine = false;
 let landingRaf = null;
+let currentFacingMode = 'user'; // front camera by default
 
 const camVid    = document.getElementById('camVid');
 const anaCanvas = document.getElementById('anaCanvas');
@@ -921,7 +923,7 @@ async function initCamera() {
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+      video: { facingMode: currentFacingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: false
     });
     camVid.srcObject = stream;
@@ -940,6 +942,32 @@ async function initCamera() {
     }
     return false;
   }
+}
+
+async function switchCamera() {
+  // Stop existing tracks
+  if (camVid.srcObject) {
+    camVid.srcObject.getTracks().forEach(t => t.stop());
+    camVid.srcObject = null;
+  }
+  // Toggle facing mode
+  currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+  updateFlipButtonLabel();
+  // Re-initialise camera with new facing mode
+  const ok = await initCamera();
+  if (!ok) {
+    // Revert if new mode failed
+    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    updateFlipButtonLabel();
+    await initCamera();
+    const st = document.getElementById('calibSt');
+    if (st) st.textContent = 'Camera switch failed · using previous camera';
+  }
+}
+
+function updateFlipButtonLabel() {
+  const btn = document.getElementById('flipCamBtn');
+  if (btn) btn.textContent = currentFacingMode === 'user' ? '⟳ REAR CAM' : '⟳ FRONT CAM';
 }
 
 // ═══════════════════════════════════════════
@@ -963,6 +991,13 @@ async function goToCalib() {
   calibCtx    = calibCanvas.getContext('2d');
   calibCanvas.width  = window.innerWidth;
   calibCanvas.height = window.innerHeight;
+
+  // Reset flip-cam button state
+  const flipBtn = document.getElementById('flipCamBtn');
+  if (flipBtn) {
+    flipBtn.style.display = '';
+    updateFlipButtonLabel();
+  }
 
   D.lineY      = 0.5;
   D.prevFrame  = null;
@@ -1018,6 +1053,8 @@ function startCalib() {
   document.getElementById('calibBody').style.display  = 'none';
   document.getElementById('calibCnt').style.display   = 'block';
   document.getElementById('calibBarWrap').style.display = 'block';
+  const flipBtn = document.getElementById('flipCamBtn');
+  if (flipBtn) flipBtn.style.display = 'none';
 
   let secsLeft = CALIB_SECS;
   document.getElementById('calibCnt').textContent = secsLeft;
