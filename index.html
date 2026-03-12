@@ -31,10 +31,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #s-landing{background:var(--bg);align-items:center;justify-content:center;overflow:hidden}
 #landingCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:0}
 .landing-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px 20px;padding-bottom:80px}
-.landing-logo{text-align:center;margin-bottom:48px}
-.landing-logo .brand{font-family:'Michroma',sans-serif;font-size:42px;letter-spacing:8px;color:var(--accent);line-height:1}
+.landing-logo{text-align:center;margin-bottom:48px;width:100%;max-width:420px}
+.landing-logo .brand{font-family:'Michroma',sans-serif;font-size:clamp(28px,9vw,42px);letter-spacing:clamp(4px,2vw,8px);color:var(--accent);line-height:1;white-space:nowrap}
 .landing-logo .brand em{color:#fff;font-style:normal}
-.landing-logo .brand-tag{font-size:10px;letter-spacing:5px;color:var(--muted);text-transform:uppercase;margin-top:10px}
+.landing-logo .brand-tag{font-size:clamp(8px,2.5vw,10px);letter-spacing:clamp(3px,1.2vw,5px);color:var(--muted);text-transform:uppercase;margin-top:10px}
 .landing-logo-icon{margin-bottom:18px}
 .landing-logo-icon svg{width:72px;height:72px;filter:drop-shadow(0 0 18px rgba(0,255,195,0.35))}
 
@@ -85,8 +85,14 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .hist-list{width:100%;max-width:420px;display:flex;flex-direction:column;gap:10px}
 .hist-card{
   background:var(--card);border:1px solid var(--border);border-radius:12px;
-  padding:14px 16px;width:100%;
+  padding:14px 16px;width:100%;position:relative;
 }
+.hist-card-del{
+  position:absolute;top:10px;right:10px;background:none;border:none;
+  color:var(--muted);cursor:pointer;padding:4px 6px;border-radius:6px;
+  font-size:16px;line-height:1;transition:color .2s,background .2s;-webkit-appearance:none;
+}
+.hist-card-del:hover,.hist-card-del:active{color:var(--danger);background:rgba(255,51,85,0.12)}
 .hist-card-title{font-family:'Michroma',sans-serif;font-size:14px;letter-spacing:2px;color:var(--text);margin-bottom:4px}
 .hist-card-date{font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:10px}
 .hist-card-stats{display:flex;gap:14px;flex-wrap:wrap}
@@ -99,16 +105,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .hist-card-result.lose{background:rgba(255,51,85,0.12);color:var(--danger)}
 
 /* ── SETUP ── */
-#s-setup{overflow-y:auto;background:var(--bg);padding:28px 22px 50px;align-items:center;gap:0}
+#s-setup{overflow-y:auto;background:var(--bg);padding:28px 22px 90px;align-items:center;gap:0}
 #s-setup::before{
   content:'';position:fixed;top:0;left:0;right:0;height:220px;
   background:radial-gradient(ellipse at 50% -20%,rgba(0,255,195,0.08) 0%,transparent 70%);
   pointer-events:none;
 }
-.brand-wrap{text-align:center;margin-bottom:36px;width:100%}
-.brand{font-family:'Michroma',sans-serif;font-size:38px;letter-spacing:6px;color:var(--accent);line-height:1}
+.brand-wrap{text-align:center;margin-bottom:36px;width:100%;max-width:420px}
+.brand{font-family:'Michroma',sans-serif;font-size:clamp(26px,8vw,38px);letter-spacing:clamp(3px,1.5vw,6px);color:var(--accent);line-height:1;white-space:nowrap}
 .brand em{color:#fff;font-style:normal}
-.brand-tag{font-size:9px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-top:6px}
+.brand-tag{font-size:clamp(8px,2.2vw,9px);letter-spacing:clamp(2px,1vw,4px);color:var(--muted);text-transform:uppercase;margin-top:6px}
 
 .field{width:100%;max-width:380px;margin-bottom:20px}
 .flabel{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
@@ -248,6 +254,47 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
 #camVid{display:none}
 #anaCanvas{display:none}
 #recCanvas{display:none}
+
+/* ── STATS ── */
+#s-stats{overflow-y:auto;background:var(--bg);padding:24px 18px 90px;align-items:center;gap:0}
+#s-stats::before{
+  content:'';position:fixed;top:0;left:0;right:0;height:180px;
+  background:radial-gradient(ellipse at 50% -20%,rgba(0,255,195,0.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.stats-header{font-family:'Michroma',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);margin-bottom:6px;text-align:center;width:100%}
+.stats-sub{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:22px;text-align:center;width:100%}
+.stats-overview{width:100%;max-width:420px;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.stats-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 14px;text-align:center}
+.stats-card-val{font-family:'Michroma',sans-serif;font-size:24px;color:var(--accent);margin-bottom:4px}
+.stats-card-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.stats-card.full{grid-column:1/-1}
+.stats-empty{text-align:center;color:var(--muted);font-size:12px;margin-top:40px;line-height:2}
+
+/* ── SETTINGS ── */
+#s-settings{overflow-y:auto;background:var(--bg);padding:24px 18px 90px;align-items:center;gap:0}
+#s-settings::before{
+  content:'';position:fixed;top:0;left:0;right:0;height:180px;
+  background:radial-gradient(ellipse at 50% -20%,rgba(0,255,195,0.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.settings-header{font-family:'Michroma',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);margin-bottom:6px;text-align:center;width:100%}
+.settings-sub{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:22px;text-align:center;width:100%}
+.settings-group{width:100%;max-width:420px;margin-bottom:20px}
+.settings-group-title{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.settings-item{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;
+}
+.settings-item-text{flex:1}
+.settings-item-title{font-size:13px;letter-spacing:1px;color:var(--text)}
+.settings-item-desc{font-size:10px;color:var(--muted);margin-top:3px}
+.settings-danger-btn{
+  width:100%;max-width:420px;background:rgba(255,51,85,0.1);border:1px solid rgba(255,51,85,0.3);
+  border-radius:12px;color:var(--danger);font-family:'Michroma',sans-serif;font-size:12px;
+  letter-spacing:2px;padding:14px;cursor:pointer;transition:background .15s;-webkit-appearance:none;
+}
+.settings-danger-btn:active{background:rgba(255,51,85,0.2)}
 </style>
 </head>
 <body>
@@ -276,7 +323,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
       <button class="glow-btn" onclick="startNewSession()">START SESSION</button>
     </div>
   </div>
-  <div class="bottom-tabs">
+  <div class="bottom-tabs" id="tabs-landing">
     <button class="tab-btn active" onclick="showTab('landing')">
       <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
       Home
@@ -284,6 +331,14 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
     <button class="tab-btn" onclick="showTab('history')">
       <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
       History
+    </button>
+    <button class="tab-btn" onclick="showTab('stats')">
+      <svg viewBox="0 0 24 24"><path d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      Stats
+    </button>
+    <button class="tab-btn" onclick="showTab('settings')">
+      <svg viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.066z"/><circle cx="12" cy="12" r="3"/></svg>
+      Settings
     </button>
   </div>
 </div>
@@ -293,7 +348,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
   <div class="hist-header">HISTORY</div>
   <div class="hist-sub">Past Sessions</div>
   <div class="hist-list" id="histList"></div>
-  <div class="bottom-tabs">
+  <div class="bottom-tabs" id="tabs-history">
     <button class="tab-btn" onclick="showTab('landing')">
       <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
       Home
@@ -301,6 +356,105 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
     <button class="tab-btn active" onclick="showTab('history')">
       <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
       History
+    </button>
+    <button class="tab-btn" onclick="showTab('stats')">
+      <svg viewBox="0 0 24 24"><path d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      Stats
+    </button>
+    <button class="tab-btn" onclick="showTab('settings')">
+      <svg viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.066z"/><circle cx="12" cy="12" r="3"/></svg>
+      Settings
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════ STATS ════════════════ -->
+<div id="s-stats" class="screen off">
+  <div class="stats-header">STATS</div>
+  <div class="stats-sub">Your Performance Overview</div>
+  <div class="stats-overview" id="statsOverview"></div>
+  <div class="bottom-tabs" id="tabs-stats">
+    <button class="tab-btn" onclick="showTab('landing')">
+      <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+      Home
+    </button>
+    <button class="tab-btn" onclick="showTab('history')">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      History
+    </button>
+    <button class="tab-btn active" onclick="showTab('stats')">
+      <svg viewBox="0 0 24 24"><path d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      Stats
+    </button>
+    <button class="tab-btn" onclick="showTab('settings')">
+      <svg viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.066z"/><circle cx="12" cy="12" r="3"/></svg>
+      Settings
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════ SETTINGS ════════════════ -->
+<div id="s-settings" class="screen off">
+  <div class="settings-header">SETTINGS</div>
+  <div class="settings-sub">App Preferences</div>
+
+  <div class="settings-group">
+    <div class="settings-group-title">Defaults</div>
+    <div class="settings-item">
+      <div class="settings-item-text">
+        <div class="settings-item-title">Default Target Steps</div>
+        <div class="settings-item-desc">Pre-fill target for new sessions</div>
+      </div>
+      <input class="finput sm" id="defTarget" type="number" value="1000" min="1" inputmode="numeric" style="width:90px;text-align:center" onchange="saveSetting('defTarget',this.value)">
+    </div>
+    <div class="settings-item">
+      <div class="settings-item-text">
+        <div class="settings-item-title">Default Time (min)</div>
+        <div class="settings-item-desc">Pre-fill time limit for new sessions</div>
+      </div>
+      <input class="finput sm" id="defTime" type="number" value="120" min="1" inputmode="numeric" style="width:90px;text-align:center" onchange="saveSetting('defTime',this.value)">
+    </div>
+  </div>
+
+  <div class="settings-group">
+    <div class="settings-group-title">Feedback</div>
+    <div class="settings-item">
+      <div class="settings-item-text">
+        <div class="settings-item-title">Vibration</div>
+        <div class="settings-item-desc">Vibrate on each step detected</div>
+      </div>
+      <label class="switch"><input type="checkbox" id="vibToggle" checked onchange="saveSetting('vibration',this.checked)"><span class="knob"></span></label>
+    </div>
+    <div class="settings-item">
+      <div class="settings-item-text">
+        <div class="settings-item-title">Sound</div>
+        <div class="settings-item-desc">Play tick sound on each step</div>
+      </div>
+      <label class="switch"><input type="checkbox" id="sndToggle" checked onchange="saveSetting('sound',this.checked)"><span class="knob"></span></label>
+    </div>
+  </div>
+
+  <div class="settings-group">
+    <div class="settings-group-title">Data</div>
+    <button class="settings-danger-btn" onclick="clearAllHistory()">🗑 CLEAR ALL HISTORY</button>
+  </div>
+
+  <div class="bottom-tabs" id="tabs-settings">
+    <button class="tab-btn" onclick="showTab('landing')">
+      <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+      Home
+    </button>
+    <button class="tab-btn" onclick="showTab('history')">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      History
+    </button>
+    <button class="tab-btn" onclick="showTab('stats')">
+      <svg viewBox="0 0 24 24"><path d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      Stats
+    </button>
+    <button class="tab-btn active" onclick="showTab('settings')">
+      <svg viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.066z"/><circle cx="12" cy="12" r="3"/></svg>
+      Settings
     </button>
   </div>
 </div>
@@ -346,8 +500,29 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
     <label class="switch"><input type="checkbox" id="recToggle"><span class="knob"></span></label>
   </div>
 
-  <button class="go-btn" onclick="goToCalib()">OPEN CAMERA →</button>
-  <button class="go-btn sec" onclick="backToLanding()">← BACK</button>
+  <div class="glow-btn-wrap" style="max-width:380px;width:100%;margin-top:10px">
+    <div class="glow-btn-border"><div class="glow-btn-inner"></div></div>
+    <button class="glow-btn" onclick="goToCalib()">START SESSION</button>
+  </div>
+
+  <div class="bottom-tabs" id="tabs-setup">
+    <button class="tab-btn" onclick="showTab('landing')">
+      <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+      Home
+    </button>
+    <button class="tab-btn" onclick="showTab('history')">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      History
+    </button>
+    <button class="tab-btn" onclick="showTab('stats')">
+      <svg viewBox="0 0 24 24"><path d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      Stats
+    </button>
+    <button class="tab-btn" onclick="showTab('settings')">
+      <svg viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.066z"/><circle cx="12" cy="12" r="3"/></svg>
+      Settings
+    </button>
+  </div>
 </div>
 
 <!-- ════════════════ CALIBRATION ════════════════ -->
@@ -415,7 +590,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
     <a class="dl-btn" id="dlBtn" download="stairvision.webm">⬇ DOWNLOAD VIDEO</a>
   </div>
 
-  <button class="go-btn" onclick="restart()" style="max-width:400px;width:100%">↩ NEW SESSION</button>
+  <button class="go-btn" onclick="restart()" style="max-width:400px;width:100%">🏠 HOME</button>
 </div>
 
 <!-- ════ HIDDEN ELEMENTS ════ -->
@@ -487,7 +662,7 @@ function fmtDateTime(d) {
 // SCREEN MANAGER
 // ═══════════════════════════════════════════
 function show(id) {
-  ['s-landing','s-history','s-setup','s-calib','s-track','s-review'].forEach(s =>
+  ['s-landing','s-history','s-stats','s-settings','s-setup','s-calib','s-track','s-review'].forEach(s =>
     document.getElementById(s).classList.toggle('off', s !== id));
 }
 
@@ -499,6 +674,14 @@ function showTab(tab) {
     show('s-history');
     stopLandingAnimation();
     renderHistory();
+  } else if (tab === 'stats') {
+    show('s-stats');
+    stopLandingAnimation();
+    renderStats();
+  } else if (tab === 'settings') {
+    show('s-settings');
+    stopLandingAnimation();
+    loadSettings();
   }
 }
 
@@ -596,10 +779,11 @@ function renderHistory() {
     list.innerHTML = '<div class="hist-empty">No sessions yet.<br>Start your first session!</div>';
     return;
   }
-  list.innerHTML = hist.map(s => {
+  list.innerHTML = hist.map((s, idx) => {
     const resultClass = s.goalReached ? 'win' : (s.pct >= 75 ? 'close' : 'lose');
     const resultText = s.goalReached ? '🏆 GOAL' : (s.pct >= 75 ? '💪 CLOSE' : '😤 RETRY');
     return `<div class="hist-card">
+      <button class="hist-card-del" onclick="deleteSession(${idx})" title="Delete session">✕</button>
       <div class="hist-card-title">${escapeHtml(s.name)}</div>
       <div class="hist-card-date">Started: ${escapeHtml(s.startedAt)} · Completed: ${escapeHtml(s.completedAt)}</div>
       <div class="hist-card-stats">
@@ -613,10 +797,71 @@ function renderHistory() {
   }).join('');
 }
 
+function deleteSession(idx) {
+  if (!confirm('Delete this session?')) return;
+  const hist = getSessionHistory();
+  hist.splice(idx, 1);
+  try { localStorage.setItem('sv_sessions', JSON.stringify(hist)); } catch(e) {}
+  renderHistory();
+}
+
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+// ═══════════════════════════════════════════
+// STATS RENDERING
+// ═══════════════════════════════════════════
+function renderStats() {
+  const container = document.getElementById('statsOverview');
+  const hist = getSessionHistory();
+  if (hist.length === 0) {
+    container.innerHTML = '<div class="stats-empty" style="grid-column:1/-1">No sessions yet.<br>Complete a session to see your stats!</div>';
+    return;
+  }
+  const totalSteps = hist.reduce((a, s) => a + (Number(s.steps) || 0), 0);
+  const totalSessions = hist.length;
+  const goalsReached = hist.filter(s => s.goalReached).length;
+  const avgPct = Math.round(hist.reduce((a, s) => a + (Number(s.pct) || 0), 0) / totalSessions);
+  const rates = hist.map(s => parseFloat(s.rate)).filter(r => !isNaN(r) && r > 0);
+  const avgRate = rates.length > 0 ? (rates.reduce((a, b) => a + b, 0) / rates.length).toFixed(1) : '—';
+  const bestRate = rates.length > 0 ? Math.max(...rates).toFixed(1) : '—';
+  const successRate = Math.round((goalsReached / totalSessions) * 100);
+
+  container.innerHTML = `
+    <div class="stats-card"><div class="stats-card-val">${totalSessions}</div><div class="stats-card-lbl">Total Sessions</div></div>
+    <div class="stats-card"><div class="stats-card-val">${totalSteps}</div><div class="stats-card-lbl">Total Steps</div></div>
+    <div class="stats-card"><div class="stats-card-val">${goalsReached}</div><div class="stats-card-lbl">Goals Reached</div></div>
+    <div class="stats-card"><div class="stats-card-val">${successRate}%</div><div class="stats-card-lbl">Success Rate</div></div>
+    <div class="stats-card"><div class="stats-card-val">${avgPct}%</div><div class="stats-card-lbl">Avg Completion</div></div>
+    <div class="stats-card"><div class="stats-card-val">${avgRate}</div><div class="stats-card-lbl">Avg Steps/Min</div></div>
+    <div class="stats-card full"><div class="stats-card-val">${bestRate}</div><div class="stats-card-lbl">Best Steps/Min</div></div>
+  `;
+}
+
+// ═══════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════
+function getSettings() {
+  try { return JSON.parse(localStorage.getItem('sv_settings') || '{}'); } catch(e) { return {}; }
+}
+function saveSetting(key, val) {
+  const s = getSettings();
+  s[key] = val;
+  try { localStorage.setItem('sv_settings', JSON.stringify(s)); } catch(e) {}
+}
+function loadSettings() {
+  const s = getSettings();
+  document.getElementById('defTarget').value = s.defTarget || 1000;
+  document.getElementById('defTime').value = s.defTime || 120;
+  document.getElementById('vibToggle').checked = s.vibration !== false;
+  document.getElementById('sndToggle').checked = s.sound !== false;
+}
+function clearAllHistory() {
+  if (!confirm('Delete ALL session history? This cannot be undone.')) return;
+  try { localStorage.removeItem('sv_sessions'); } catch(e) {}
 }
 
 // ═══════════════════════════════════════════
@@ -632,6 +877,13 @@ function startNewSession() {
 
   document.getElementById('sessionLabel').textContent = C.objName;
   document.getElementById('sessionDate').textContent = fmtDateTime(now);
+
+  // Apply default settings
+  const settings = getSettings();
+  document.getElementById('targetSteps').value = settings.defTarget || 1000;
+  const defMins = parseInt(settings.defTime) || 120;
+  document.getElementById('timeH').value = Math.floor(defMins / 60);
+  document.getElementById('timeM').value = defMins % 60;
 
   show('s-setup');
 }
@@ -1179,8 +1431,9 @@ function countStep() {
   if (!S.stepMarkers) S.stepMarkers = [];
   S.stepMarkers.push({ t: Date.now(), x: 0.1 + Math.random()*0.8 });
 
-  if (navigator.vibrate) navigator.vibrate(25);
-  playTick();
+  const settings = getSettings();
+  if (settings.vibration !== false && navigator.vibrate) navigator.vibrate(25);
+  if (settings.sound !== false) playTick();
   if (S.steps >= C.targetSteps) endSession(true);
 }
 
