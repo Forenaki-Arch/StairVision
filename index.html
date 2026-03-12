@@ -170,6 +170,10 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
   background:rgba(5,8,15,.9);border:1px solid var(--border);border-radius:16px;
   padding:20px 18px 16px;width:100%;max-width:380px;text-align:center;
   pointer-events:all;backdrop-filter:blur(16px);
+  transition:opacity .2s ease, transform .2s ease;
+}
+.calib-card.hidden-while-drag{
+  opacity:0;pointer-events:none;transform:translateY(20px);
 }
 .calib-head{font-family:'Michroma',sans-serif;font-size:26px;letter-spacing:4px;color:var(--accent);margin-bottom:8px}
 .calib-body{font-size:11px;line-height:1.7;color:var(--muted);margin-bottom:16px}
@@ -556,9 +560,9 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
       <div class="calib-head" id="calibHead">POSITION LINE</div>
       <div class="calib-body" id="calibBody">
         Position the phone so your <strong>full body is visible</strong> on camera.<br>
-        Drag the line to your <strong>mid-body height</strong>, then tap <strong>START</strong>.
+        Drag the line to the <strong>top edge of the stair</strong>, then tap <strong>START</strong>.
       </div>
-      <div class="calib-st" id="calibSt">Drag the line · tap START when ready</div>
+      <div class="calib-st" id="calibSt">Drag to stair edge · tap START when ready</div>
       <button class="go-btn" id="calibBtn" onclick="beginTracking()">START TRACKING →</button>
       <button class="go-btn sec" id="flipCamBtn" aria-label="Switch camera" onclick="switchCamera()">⟳ REAR CAM</button>
     </div>
@@ -1061,7 +1065,7 @@ function updateCalibStatus() {
   document.getElementById('calibSt').textContent =
     draggingCalibLine
       ? `Line at ${Math.round(D.lineY*100)}% · release and tap START`
-      : `Line at ${Math.round(D.lineY*100)}% · tap START when ready`;
+      : `Line at ${Math.round(D.lineY*100)}% · drag to stair edge`;
 }
 function onCalibTouchStart(e) {
   draggingCalibLine = true;
@@ -1069,6 +1073,9 @@ function onCalibTouchStart(e) {
   const rect = calibCanvas.getBoundingClientRect();
   D.lineY = Math.max(0.08, Math.min(0.92, (e.touches[0].clientY - rect.top) / rect.height));
   updateCalibStatus();
+  // Hide popup card for full-screen camera preview while dragging
+  const card = document.querySelector('.calib-card');
+  if (card) card.classList.add('hidden-while-drag');
 }
 function onCalibTouchMove(e) {
   if (!draggingCalibLine) return;
@@ -1080,6 +1087,9 @@ function onCalibTouchMove(e) {
 function onCalibTouchEnd() {
   draggingCalibLine = false;
   updateCalibStatus();
+  // Auto-restore popup card when touch is released
+  const card = document.querySelector('.calib-card');
+  if (card) card.classList.remove('hidden-while-drag');
 }
 
 // ═══════════════════════════════════════════
@@ -1300,17 +1310,18 @@ function runLoop() {
           const avg = D.motionBuf.reduce((a,b)=>a+b,0) / D.motionBuf.length;
           D.adaptThresh = Math.max(MIN_THRESH, avg * C.sensitivity);
 
-          // State machine: idle↑active↓idle = 1 step.
-          // When step activates, snapshot direction: more motion below the line means
-          // the body is approaching from below (going UP); more above means going DOWN.
-          // Only finalise a count when going UP, both feet have cleared, and below is quiet.
+          // State machine: idle → in-progress → cleared = 1 step.
+          // Line is placed at the top edge of the stair.
+          // A step is "in progress" while any part of the body is still at or below the line.
+          // The count triggers only on the transition to being fully cleared above the line:
+          //   both the band motion must subside AND the below-line region must be quiet.
           const now = Date.now();
           if (!S.stepActive && D.motionSignal > D.adaptThresh && now - S.lastStepMs > COOLDOWN_MS) {
             S.stepActive   = true;
             S.stepGoingUp  = D.belowSignal > D.aboveSignal;
-          } else if (S.stepActive && D.motionSignal < D.adaptThresh * 0.45) {
+          } else if (S.stepActive && D.belowSignal < BELOW_QUIET_THRESHOLD && D.motionSignal < D.adaptThresh * 0.45) {
             S.stepActive = false;
-            if (S.stepGoingUp && D.belowSignal < BELOW_QUIET_THRESHOLD) {
+            if (S.stepGoingUp) {
               countStep();
             }
           }
