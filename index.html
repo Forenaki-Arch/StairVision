@@ -1400,7 +1400,7 @@ function runLoop() {
               if (motSettle && D.belowSignal < REGION_QUIET_THRESHOLD) {
                 // Entire body above line — trailing foot cleared.
                 S.climbState = 'ABOVE';
-                if (C.countMode === 'incremental') countStep();
+                if ((C.countMode || 'cycle') === 'incremental') countStep();
               } else if (motSettle) {
                 // Band settled but body never fully crossed — false trigger.
                 S.climbState = 'BELOW';
