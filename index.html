@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#00ffc3">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Computer Vision Step Counter — detect and count stair steps in real-time using your phone camera.">
 <title>StairVision</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/svg+xml" href="/icons/icon-192.svg">
+<link rel="apple-touch-icon" href="/icons/icon-192.svg">
 <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -327,6 +333,25 @@ function show(id) {
 // CAMERA INIT
 // ═══════════════════════════════════════════
 async function initCamera() {
+  // Check if camera API is available (requires HTTPS or localhost)
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Camera API is not available.\n\nThis app requires HTTPS. Please open this page using https:// or deploy it to a secure host.');
+    return false;
+  }
+
+  // Check current permission state if the Permissions API is supported
+  if (navigator.permissions) {
+    try {
+      const perm = await navigator.permissions.query({ name: 'camera' });
+      if (perm.state === 'denied') {
+        alert('Camera access was previously denied.\n\nPlease allow camera access in your browser settings and reload the page.');
+        return false;
+      }
+    } catch(e) {
+      // Permissions API query for camera not supported in all browsers — continue
+    }
+  }
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -337,7 +362,15 @@ async function initCamera() {
     await camVid.play();
     return true;
   } catch(e) {
-    alert('Camera permission required. Please allow camera access and reload.');
+    if (e.name === 'NotAllowedError') {
+      alert('Camera access was denied.\n\nPlease allow camera permission when prompted and try again.');
+    } else if (e.name === 'NotFoundError') {
+      alert('No camera found.\n\nPlease ensure your device has a camera connected.');
+    } else if (e.name === 'NotReadableError') {
+      alert('Camera is already in use by another application.\n\nPlease close other apps using the camera and try again.');
+    } else {
+      alert('Could not access camera: ' + e.message + '\n\nPlease check your browser settings.');
+    }
     return false;
   }
 }
@@ -961,6 +994,15 @@ function playTick() {
 // ═══════════════════════════════════════════
 async function requestWakeLock() {
   try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch(e) {}
+}
+
+// ═══════════════════════════════════════════
+// SERVICE WORKER REGISTRATION (PWA)
+// ═══════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
 }
 </script>
 </body>

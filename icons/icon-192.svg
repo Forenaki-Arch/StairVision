@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" rx="24" fill="#05080f"/>
+  <!-- Stair steps -->
+  <g stroke="#00ffc3" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="36,156 36,120 72,120 72,84 108,84 108,48 144,48 144,36"/>
+  </g>
+  <!-- Eye / vision symbol -->
+  <g transform="translate(96,96)" fill="none" stroke="#00ffc3" stroke-width="3">
+    <ellipse rx="30" ry="18" opacity="0.6"/>
+    <circle r="9" fill="#00ffc3" opacity="0.8"/>
+  </g>
+  <!-- Detection line -->
+  <line x1="24" y1="130" x2="168" y2="130" stroke="#00ffc3" stroke-width="2" stroke-dasharray="8,5" opacity="0.5"/>
+</svg>
