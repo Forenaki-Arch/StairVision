@@ -215,6 +215,22 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
   backdrop-filter:blur(8px);
 }
 
+/* ── PRE-TRACKING COUNTDOWN ── */
+.countdown-overlay{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(5,8,15,.62);z-index:10;pointer-events:none;
+}
+.countdown-inner{text-align:center}
+.countdown-label{
+  font-family:'Michroma',sans-serif;font-size:13px;letter-spacing:6px;
+  color:rgba(255,255,255,.45);text-transform:uppercase;margin-bottom:10px;
+}
+.countdown-num{
+  font-family:'Michroma',sans-serif;font-size:clamp(80px,25vw,140px);
+  color:var(--accent);line-height:1;
+  text-shadow:0 0 40px rgba(0,255,195,.55);
+}
+
 /* ── REVIEW ── */
 #s-review{overflow-y:auto;background:var(--bg);padding:28px 20px 50px;align-items:center;gap:0}
 #s-review::before{content:'';position:fixed;top:0;left:0;right:0;height:180px;background:radial-gradient(ellipse at 50% -10%,rgba(0,255,195,.06) 0%,transparent 70%);pointer-events:none}
@@ -537,18 +553,14 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
   <canvas id="calibCanvas"></canvas>
   <div class="calib-overlay">
     <div class="calib-card">
-      <div class="calib-head" id="calibHead">CALIBRATE</div>
+      <div class="calib-head" id="calibHead">POSITION LINE</div>
       <div class="calib-body" id="calibBody">
-        Position the phone so your <strong>full body is visible</strong> on camera while climbing stairs.<br>
-        Tap <strong>START</strong>, then take <strong>6–8 steps</strong> in front of the camera.
-        The AI will auto-detect where to place the detection line.
+        Position the phone so your <strong>full body is visible</strong> on camera.<br>
+        Drag the line to your <strong>mid-body height</strong>, then tap <strong>START</strong>.
       </div>
-      <div class="calib-cnt" id="calibCnt">7</div>
-      <div class="calib-bar-wrap" id="calibBarWrap"><div class="calib-bar" id="calibBar"></div></div>
-      <div class="calib-st" id="calibSt">Camera ready ·  tap to begin</div>
-      <button class="go-btn" id="calibBtn" onclick="startCalib()">START CALIBRATION</button>
+      <div class="calib-st" id="calibSt">Drag the line · tap START when ready</div>
+      <button class="go-btn" id="calibBtn" onclick="beginTracking()">START TRACKING →</button>
       <button class="go-btn sec" id="flipCamBtn" aria-label="Switch camera" onclick="switchCamera()">⟳ REAR CAM</button>
-      <button class="go-btn sec" onclick="skipCalib()">SKIP → USE MANUAL TAP</button>
     </div>
   </div>
 </div>
@@ -562,6 +574,14 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
     <div id="recDot"><span class="rdot"></span>REC</div>
     <!-- Drag hint -->
     <div class="drag-hint" id="dragHint">DRAG LINE TO REPOSITION</div>
+  </div>
+
+  <!-- Pre-tracking countdown -->
+  <div class="countdown-overlay" id="countdownOverlay" style="display:none">
+    <div class="countdown-inner">
+      <div class="countdown-label">GET READY</div>
+      <div class="countdown-num" id="countdownNum">5</div>
+    </div>
   </div>
 
   <!-- Control buttons -->
@@ -611,10 +631,12 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
 // CONSTANTS
 // ═══════════════════════════════════════════
 const AW = 160, AH = 90;          // analysis canvas size
-const CALIB_SECS = 7;              // calibration duration
 const COOLDOWN_MS = 700;           // min ms between counted steps
 const MOT_BUF_LEN = 18;            // motion history window
 const MIN_THRESH = 10;             // absolute minimum threshold
+const BELOW_THRESH_FACTOR = 2;    // below-line signal must be < MIN_THRESH × this to confirm both feet crossed
+const BELOW_QUIET_THRESHOLD = MIN_THRESH * BELOW_THRESH_FACTOR;
+const COUNTDOWN_SECS = 5;         // pre-tracking positioning countdown
 
 // ═══════════════════════════════════════════
 // STATE
@@ -624,11 +646,12 @@ const S = {}; // session
 const D = {}; // detection
 const R = {}; // recording
 
-let rafId = null, timerInt = null, calibInt = null;
+let rafId = null, timerInt = null, countdownInt = null;
 let calibPreviewRaf = null;
 let frameCount = 0;
 let audioCtx = null;
 let draggingLine = false;
+let draggingCalibLine = false;
 let landingRaf = null;
 let currentFacingMode = 'user'; // front camera by default
 
@@ -999,10 +1022,12 @@ async function goToCalib() {
     updateFlipButtonLabel();
   }
 
-  D.lineY      = 0.5;
-  D.prevFrame  = null;
-  D.calibAccum = null;
-  D.calibFrames= 0;
+  D.lineY     = 0.5;
+  D.prevFrame = null;
+
+  calibCanvas.addEventListener('touchstart', onCalibTouchStart, { passive: false });
+  calibCanvas.addEventListener('touchmove',  onCalibTouchMove,  { passive: false });
+  calibCanvas.addEventListener('touchend',   onCalibTouchEnd);
 
   startCalibPreview();
 }
@@ -1012,18 +1037,6 @@ function startCalibPreview() {
     if (camVid.readyState >= 2) {
       const W = calibCanvas.width, H = calibCanvas.height;
       calibCtx.drawImage(camVid, 0, 0, W, H);
-
-      // Heatmap overlay during calibration
-      if (D.calibAccum && D.calibFrames > 5) {
-        const maxV = Math.max(...D.calibAccum, 1);
-        for (let y = 0; y < AH; y++) {
-          const t = D.calibAccum[y] / maxV;
-          if (t < 0.05) continue;
-          const sy = (y/AH)*H, ey = ((y+1)/AH)*H;
-          calibCtx.fillStyle = `rgba(0,255,195,${t*0.22})`;
-          calibCtx.fillRect(0, sy, W, ey-sy);
-        }
-      }
 
       // Detection line preview
       const ly = D.lineY * H;
@@ -1043,85 +1056,30 @@ function startCalibPreview() {
   calibPreviewRaf = requestAnimationFrame(loop);
 }
 
-// ── Calibration countdown ──
-function startCalib() {
-  D.calibAccum  = new Float32Array(AH);
-  D.calibFrames = 0;
-  D.prevFrame   = null;
-
-  document.getElementById('calibBtn').style.display   = 'none';
-  document.getElementById('calibBody').style.display  = 'none';
-  document.getElementById('calibCnt').style.display   = 'block';
-  document.getElementById('calibBarWrap').style.display = 'block';
-  const flipBtn = document.getElementById('flipCamBtn');
-  if (flipBtn) flipBtn.style.display = 'none';
-
-  let secsLeft = CALIB_SECS;
-  document.getElementById('calibCnt').textContent = secsLeft;
-  document.getElementById('calibHead').textContent = 'WALK NOW!';
-  document.getElementById('calibSt').textContent   = 'Recording your motion…';
-
-  // Frame analysis during calibration
-  let calibRaf;
-  function analyzeLoop() {
-    if (camVid.readyState >= 2) {
-      anaCtx.drawImage(camVid, 0, 0, AW, AH);
-      const curr = anaCtx.getImageData(0, 0, AW, AH).data;
-      if (D.prevFrame) {
-        for (let y = 0; y < AH; y++) {
-          let s = 0;
-          for (let x = 0; x < AW; x++) {
-            const i = (y*AW+x)*4;
-            s += Math.abs(curr[i]   - D.prevFrame[i])
-               + Math.abs(curr[i+1] - D.prevFrame[i+1])
-               + Math.abs(curr[i+2] - D.prevFrame[i+2]);
-          }
-          D.calibAccum[y] += s / AW;
-        }
-        D.calibFrames++;
-      }
-      D.prevFrame = new Uint8ClampedArray(curr);
-    }
-    calibRaf = requestAnimationFrame(analyzeLoop);
-  }
-  calibRaf = requestAnimationFrame(analyzeLoop);
-
-  calibInt = setInterval(() => {
-    secsLeft--;
-    document.getElementById('calibCnt').textContent = secsLeft;
-    document.getElementById('calibBar').style.width = ((CALIB_SECS-secsLeft)/CALIB_SECS*100) + '%';
-    if (secsLeft <= 0) {
-      clearInterval(calibInt);
-      cancelAnimationFrame(calibRaf);
-      finishCalib();
-    }
-  }, 1000);
+// ── Calibration line drag ──
+function updateCalibStatus() {
+  document.getElementById('calibSt').textContent =
+    draggingCalibLine
+      ? `Line at ${Math.round(D.lineY*100)}% · release and tap START`
+      : `Line at ${Math.round(D.lineY*100)}% · tap START when ready`;
 }
-
-function finishCalib() {
-  // Weighted center-of-mass of motion
-  const acc = D.calibAccum;
-  let tw = 0, wy = 0;
-  for (let y = 0; y < AH; y++) { tw += acc[y]; wy += y * acc[y]; }
-  if (tw > 0) {
-    D.lineY = Math.max(0.15, Math.min(0.88, (wy/tw) / AH));
-  }
-
-  document.getElementById('calibHead').textContent = 'CALIBRATED!';
-  document.getElementById('calibCnt').style.display = 'none';
-  document.getElementById('calibBarWrap').style.display = 'none';
-  document.getElementById('calibSt').textContent = `Detection line → ${Math.round(D.lineY*100)}% from top  ·  drag to adjust`;
-  document.getElementById('calibBtn').style.display = 'block';
-  document.getElementById('calibBtn').textContent = 'START TRACKING →';
-  document.getElementById('calibBtn').onclick = beginTracking;
+function onCalibTouchStart(e) {
+  draggingCalibLine = true;
+  e.preventDefault();
+  const rect = calibCanvas.getBoundingClientRect();
+  D.lineY = Math.max(0.08, Math.min(0.92, (e.touches[0].clientY - rect.top) / rect.height));
+  updateCalibStatus();
 }
-
-function skipCalib() {
-  cancelAnimationFrame(calibPreviewRaf);
-  clearInterval(calibInt);
-  D.lineY = 0.5;
-  D.prevFrame = null;
-  beginTracking();
+function onCalibTouchMove(e) {
+  if (!draggingCalibLine) return;
+  e.preventDefault();
+  const rect = calibCanvas.getBoundingClientRect();
+  D.lineY = Math.max(0.08, Math.min(0.92, (e.touches[0].clientY - rect.top) / rect.height));
+  updateCalibStatus();
+}
+function onCalibTouchEnd() {
+  draggingCalibLine = false;
+  updateCalibStatus();
 }
 
 // ═══════════════════════════════════════════
@@ -1129,21 +1087,28 @@ function skipCalib() {
 // ═══════════════════════════════════════════
 function beginTracking() {
   cancelAnimationFrame(calibPreviewRaf);
+  calibCanvas.removeEventListener('touchstart', onCalibTouchStart);
+  calibCanvas.removeEventListener('touchmove',  onCalibTouchMove);
+  calibCanvas.removeEventListener('touchend',   onCalibTouchEnd);
 
   // Session state
   S.steps         = 0;
   S.remainingSecs = C.totalSecs;
   S.paused        = false;
   S.running       = true;
-  S.lastStepMs    = Date.now(); // prevent immediate count on start
+  S.lastStepMs    = 0;           // set at end of countdown
   S.stepActive    = false;
   S.stepPulse     = 0;
+  S.stepGoingUp   = false;
+  S.countingDown  = true;        // blocks detection and timer until countdown ends
 
   // Detection state
   D.prevFrame    = null;
   D.motionBuf    = [];
   D.adaptThresh  = 15;
   D.motionSignal = 0;
+  D.belowSignal  = 0;
+  D.aboveSignal  = 0;
 
   show('s-track');
 
@@ -1163,16 +1128,52 @@ function beginTracking() {
   mainCanvas.addEventListener('touchmove',  onTouchMove,  { passive: false });
   mainCanvas.addEventListener('touchend',   onTouchEnd);
 
-  // Recording setup
-  if (C.recEnabled) setupRecording();
-
-  // Timer
-  timerInt = setInterval(timerTick, 1000);
-
-  // Render loop (start after fonts load)
+  // Render loop starts immediately so camera is visible during countdown
   document.fonts.ready.then(() => runLoop());
 
   requestWakeLock();
+
+  // 5-second positioning countdown before tracking begins
+  startCountdown();
+}
+
+// ═══════════════════════════════════════════
+// PRE-TRACKING COUNTDOWN
+// ═══════════════════════════════════════════
+function startCountdown() {
+  let secsLeft = COUNTDOWN_SECS;
+  const overlay = document.getElementById('countdownOverlay');
+  const numEl   = document.getElementById('countdownNum');
+  overlay.style.display = 'flex';
+  numEl.textContent = secsLeft;
+
+  // 4 beeps/second via 250 ms interval — interval handler fires handle all beeps evenly
+  let subTick = 0;
+
+  countdownInt = setInterval(() => {
+    subTick++;
+    playCountdownBeep();
+
+    if (subTick >= 4) {
+      subTick = 0;
+      secsLeft--;
+      if (secsLeft > 0) {
+        numEl.textContent = secsLeft;
+      } else {
+        clearInterval(countdownInt);
+        countdownInt = null;
+        numEl.textContent = 'GO!';
+        playCountdownGo();
+        setTimeout(() => {
+          overlay.style.display = 'none';
+          S.countingDown = false;
+          S.lastStepMs   = Date.now();
+          if (C.recEnabled) setupRecording();
+          timerInt = setInterval(timerTick, 1000);
+        }, 200);
+      }
+    }
+  }, 250);
 }
 
 // ── Line drag ──
@@ -1232,8 +1233,8 @@ function runLoop() {
     // ── 1. Camera feed ──
     mainCtx.drawImage(camVid, 0, 0, W, H);
 
-    // ── 2. Motion detection (every 2 frames) ──
-    if (!S.paused && frameCount % 2 === 0) {
+    // ── 2. Motion detection (every 2 frames — skipped during countdown) ──
+    if (!S.paused && !S.countingDown && frameCount % 2 === 0) {
       anaCtx.drawImage(camVid, 0, 0, AW, AH);
       const curr = anaCtx.getImageData(0, 0, AW, AH).data;
 
@@ -1262,6 +1263,36 @@ function runLoop() {
         }
         D.motionSignal = (cnt > 0) ? bandMot / cnt : 0;
 
+        // Below-line signal: both feet must have fully crossed above the line.
+        // Detection band spans [anaLY - band, anaLY + band]; below starts at anaLY + band + 1.
+        const belowY0 = Math.min(AH - 1, anaLY + band + 1);
+        let belowMot = 0, belowCnt = 0;
+        for (let y = belowY0; y < AH; y++) {
+          for (let x = 0; x < AW; x++) {
+            const i = (y*AW+x)*4;
+            belowMot += Math.abs(curr[i]   - D.prevFrame[i])
+                      + Math.abs(curr[i+1] - D.prevFrame[i+1])
+                      + Math.abs(curr[i+2] - D.prevFrame[i+2]);
+            belowCnt++;
+          }
+        }
+        D.belowSignal = (belowCnt > 0) ? belowMot / belowCnt : 0;
+
+        // Above-line signal: used to determine crossing direction (up vs. down).
+        // Detection band spans [anaLY - band, anaLY + band]; above ends at anaLY - band - 1.
+        const aboveY1 = Math.max(0, anaLY - band - 1);
+        let aboveMot = 0, aboveCnt = 0;
+        for (let y = 0; y <= aboveY1; y++) {
+          for (let x = 0; x < AW; x++) {
+            const i = (y*AW+x)*4;
+            aboveMot += Math.abs(curr[i]   - D.prevFrame[i])
+                      + Math.abs(curr[i+1] - D.prevFrame[i+1])
+                      + Math.abs(curr[i+2] - D.prevFrame[i+2]);
+            aboveCnt++;
+          }
+        }
+        D.aboveSignal = (aboveCnt > 0) ? aboveMot / aboveCnt : 0;
+
         // Adaptive threshold (skip if too much global shake)
         if (globalMot < 30) {
           D.motionBuf.push(D.motionSignal);
@@ -1269,20 +1300,26 @@ function runLoop() {
           const avg = D.motionBuf.reduce((a,b)=>a+b,0) / D.motionBuf.length;
           D.adaptThresh = Math.max(MIN_THRESH, avg * C.sensitivity);
 
-          // State machine: idle↑active↓idle = 1 step
+          // State machine: idle↑active↓idle = 1 step.
+          // When step activates, snapshot direction: more motion below the line means
+          // the body is approaching from below (going UP); more above means going DOWN.
+          // Only finalise a count when going UP, both feet have cleared, and below is quiet.
           const now = Date.now();
           if (!S.stepActive && D.motionSignal > D.adaptThresh && now - S.lastStepMs > COOLDOWN_MS) {
-            S.stepActive = true;
+            S.stepActive   = true;
+            S.stepGoingUp  = D.belowSignal > D.aboveSignal;
           } else if (S.stepActive && D.motionSignal < D.adaptThresh * 0.45) {
             S.stepActive = false;
-            countStep();
+            if (S.stepGoingUp && D.belowSignal < BELOW_QUIET_THRESHOLD) {
+              countStep();
+            }
           }
         }
       }
       D.prevFrame = new Uint8ClampedArray(curr);
     }
 
-    // ── 3. Recording canvas: camera + HUD only (no CV lines) ──
+    // ── 3. Recording canvas: camera + HUD only — NO detection line, NO CV overlays ──
     if (C.recEnabled && recCtx) {
       recCtx.drawImage(camVid, 0, 0, W, H);
       drawHUD(W, H, recCtx);
@@ -1297,7 +1334,7 @@ function runLoop() {
       }
     }
 
-    // ── 4. Detection line (live display only, not in recording) ──
+    // ── 4. Detection line drawn on mainCtx ONLY — never touches recCtx ──
     if (S.stepPulse > 0) S.stepPulse = Math.max(0, S.stepPulse - 0.04);
     const ly = D.lineY * H;
     const glow = 6 + S.stepPulse * 28;
@@ -1344,8 +1381,8 @@ function runLoop() {
     // ── 5. HUD Text (drawn on main canvas for live view) ──
     drawHUD(W, H, mainCtx);
 
-    // ── 6. PAUSED overlay ──
-    if (S.paused) {
+    // ── 6. PAUSED overlay (not shown during countdown — countdown has its own overlay) ──
+    if (S.paused && !S.countingDown) {
       mainCtx.fillStyle = 'rgba(5,8,15,0.55)';
       mainCtx.fillRect(0, 0, W, H);
       mainCtx.fillStyle = '#fff';
@@ -1467,7 +1504,7 @@ function parseTimeStr(s) {
 // STEP COUNTING
 // ═══════════════════════════════════════════
 function countStep() {
-  if (!S.running || S.paused) return;
+  if (!S.running || S.paused || S.countingDown) return;
   S.steps++;
   S.lastStepMs = Date.now();
   S.stepPulse  = 1;
@@ -1516,7 +1553,7 @@ function undoStep() {
 // TIMER
 // ═══════════════════════════════════════════
 function timerTick() {
-  if (S.paused) return;
+  if (S.paused || S.countingDown) return;
   S.remainingSecs--;
   if (S.remainingSecs <= 0) endSession(false);
 }
@@ -1543,6 +1580,8 @@ function confirmStop() {
 // ═══════════════════════════════════════════
 async function endSession(goalReached) {
   S.running = false;
+  S.countingDown = false;
+  if (countdownInt) { clearInterval(countdownInt); countdownInt = null; }
   clearInterval(timerInt);
   cancelAnimationFrame(rafId);
 
@@ -1639,6 +1678,42 @@ function restart() {
 // ═══════════════════════════════════════════
 // AUDIO
 // ═══════════════════════════════════════════
+function playCountdownBeep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.type = 'sine';
+    o.frequency.value = 660;
+    g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.055);
+    o.start(); o.stop(audioCtx.currentTime + 0.055);
+  } catch(e) {}
+}
+
+function playCountdownGo() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime;
+    // Short-short-long sequence: "beep beep BEEEP" = GO signal
+    [
+      { freq: 880,  start: 0,    dur: 0.08, gain: 0.22 },
+      { freq: 880,  start: 0.13, dur: 0.08, gain: 0.22 },
+      { freq: 1174, start: 0.25, dur: 0.55, gain: 0.28 },
+    ].forEach(({ freq, start, dur, gain }) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0, t + start);
+      g.gain.linearRampToValueAtTime(gain, t + start + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, t + start + dur);
+      o.start(t + start);
+      o.stop(t + start + dur);
+    });
+  } catch(e) {}
+}
+
 function playTick() {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
