@@ -636,6 +636,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
 // ═══════════════════════════════════════════
 const AW = 160, AH = 90;          // analysis canvas size
 const COOLDOWN_MS = 700;           // min ms between counted steps
+const MIN_CROSSING_MS = 300;       // min ms in a crossing state before allowing transition
 const MOT_BUF_LEN = 18;            // motion history window
 const MIN_THRESH = 10;             // absolute minimum threshold
 const REGION_THRESH_FACTOR = 2;    // region signal must be < MIN_THRESH × this to confirm crossing
@@ -1108,6 +1109,7 @@ function beginTracking() {
   S.running       = true;
   S.lastStepMs    = 0;           // set at end of countdown
   S.climbState    = 'BELOW';   // dual-crossing states: BELOW → CROSSING_UP → ABOVE → CROSSING_DOWN → BELOW
+  S.stateEnteredAt = 0;        // timestamp when current crossing state was entered
   S.stepPulse     = 0;
   S.countingDown  = true;        // blocks detection and timer until countdown ends
 
@@ -1324,27 +1326,35 @@ function runLoop() {
           if (S.climbState === 'BELOW') {
             if (D.motionSignal > D.adaptThresh && now - S.lastStepMs > COOLDOWN_MS) {
               S.climbState = 'CROSSING_UP';
+              S.stateEnteredAt = now;
             }
           } else if (S.climbState === 'CROSSING_UP') {
-            if (motSettle && D.belowSignal < REGION_QUIET_THRESHOLD) {
-              // Entire body above line — trailing foot cleared.
-              S.climbState = 'ABOVE';
-            } else if (motSettle) {
-              // Band settled but body never fully crossed — false trigger.
-              S.climbState = 'BELOW';
+            // Wait for both legs to cross before evaluating settle.
+            if (now - S.stateEnteredAt >= MIN_CROSSING_MS) {
+              if (motSettle && D.belowSignal < REGION_QUIET_THRESHOLD) {
+                // Entire body above line — trailing foot cleared.
+                S.climbState = 'ABOVE';
+              } else if (motSettle) {
+                // Band settled but body never fully crossed — false trigger.
+                S.climbState = 'BELOW';
+              }
             }
           } else if (S.climbState === 'ABOVE') {
             if (D.motionSignal > D.adaptThresh) {
               S.climbState = 'CROSSING_DOWN';
+              S.stateEnteredAt = now;
             }
           } else if (S.climbState === 'CROSSING_DOWN') {
-            if (motSettle && D.aboveSignal < REGION_QUIET_THRESHOLD) {
-              // Entire body below line — trailing foot returned. Full cycle complete.
-              S.climbState = 'BELOW';
-              countStep();
-            } else if (motSettle) {
-              // Band settled but body never fully returned — false trigger.
-              S.climbState = 'ABOVE';
+            // Wait for both legs to cross before evaluating settle.
+            if (now - S.stateEnteredAt >= MIN_CROSSING_MS) {
+              if (motSettle && D.aboveSignal < REGION_QUIET_THRESHOLD) {
+                // Entire body below line — trailing foot returned. Full cycle complete.
+                S.climbState = 'BELOW';
+                countStep();
+              } else if (motSettle) {
+                // Band settled but body never fully returned — false trigger.
+                S.climbState = 'ABOVE';
+              }
             }
           }
         }
