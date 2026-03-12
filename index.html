@@ -1107,7 +1107,7 @@ function beginTracking() {
   S.paused        = false;
   S.running       = true;
   S.lastStepMs    = 0;           // set at end of countdown
-  S.stepActive    = false;
+  S.climbState    = 'BELOW';   // dual-crossing states: BELOW → CROSSING_UP → ABOVE → CROSSING_DOWN → BELOW
   S.stepPulse     = 0;
   S.countingDown  = true;        // blocks detection and timer until countdown ends
 
@@ -1309,19 +1309,43 @@ function runLoop() {
           const avg = D.motionBuf.reduce((a,b)=>a+b,0) / D.motionBuf.length;
           D.adaptThresh = Math.max(MIN_THRESH, avg * C.sensitivity);
 
-          // State machine: idle → in-progress → cleared = 1 step.
+          // Dual-crossing state machine: "Lowest Point" tracking.
+          // 1 full body cycle (below → fully above → fully below) = 1 count.
           // Line is placed at the top edge of the stair.
-          // A step is "in progress" when significant band motion is detected.
-          // The count triggers when band motion subsides AND either the
-          // below-line or above-line region is quiet — this allows counting
-          // steps in both directions (up AND down) for stair exercises.
+          //
+          // BELOW        – body below line, waiting for ascent.
+          // CROSSING_UP  – band motion detected; first foot crossing up (do NOT count).
+          // ABOVE         – entire body above line (below region quiet); "up" confirmed.
+          // CROSSING_DOWN – band motion detected; first foot dropping back (do NOT count).
+          // Back to BELOW – entire body below line (above region quiet); count +1 & reset.
           const now = Date.now();
-          if (!S.stepActive && D.motionSignal > D.adaptThresh && now - S.lastStepMs > COOLDOWN_MS) {
-            S.stepActive   = true;
-          } else if (S.stepActive && D.motionSignal < D.adaptThresh * 0.45 &&
-                     (D.belowSignal < REGION_QUIET_THRESHOLD || D.aboveSignal < REGION_QUIET_THRESHOLD)) {
-            S.stepActive = false;
-            countStep();
+          const motSettle = D.motionSignal < D.adaptThresh * 0.45;
+
+          if (S.climbState === 'BELOW') {
+            if (D.motionSignal > D.adaptThresh && now - S.lastStepMs > COOLDOWN_MS) {
+              S.climbState = 'CROSSING_UP';
+            }
+          } else if (S.climbState === 'CROSSING_UP') {
+            if (motSettle && D.belowSignal < REGION_QUIET_THRESHOLD) {
+              // Entire body above line — trailing foot cleared.
+              S.climbState = 'ABOVE';
+            } else if (motSettle) {
+              // Band settled but body never fully crossed — false trigger.
+              S.climbState = 'BELOW';
+            }
+          } else if (S.climbState === 'ABOVE') {
+            if (D.motionSignal > D.adaptThresh) {
+              S.climbState = 'CROSSING_DOWN';
+            }
+          } else if (S.climbState === 'CROSSING_DOWN') {
+            if (motSettle && D.aboveSignal < REGION_QUIET_THRESHOLD) {
+              // Entire body below line — trailing foot returned. Full cycle complete.
+              S.climbState = 'BELOW';
+              countStep();
+            } else if (motSettle) {
+              // Band settled but body never fully returned — false trigger.
+              S.climbState = 'ABOVE';
+            }
           }
         }
       }
