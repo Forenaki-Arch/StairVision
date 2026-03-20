@@ -21,6 +21,12 @@
   --muted:#3a4560;--danger:#ff3355;--ok:#00ff88;
   --border:#1a2540;--line:#00ffc3;
 }
+[data-theme="light"]{
+  --bg:#f0f2f5;--surface:#e4e7ec;--card:#ffffff;
+  --accent:#009e78;--accent2:#d04e00;--text:#1a1d26;
+  --muted:#6b7280;--danger:#dc2626;--ok:#059669;
+  --border:#d1d5db;--line:#009e78;
+}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace}
 
 /* ── SCREEN SYSTEM ── */
@@ -449,6 +455,17 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
 <div id="s-settings" class="screen off">
   <div class="settings-header">SETTINGS</div>
   <div class="settings-sub">App Preferences</div>
+
+  <div class="settings-group">
+    <div class="settings-group-title">Appearance</div>
+    <div class="settings-item">
+      <div class="settings-item-text">
+        <div class="settings-item-title">Dark Mode</div>
+        <div class="settings-item-desc">Switch between dark and light theme</div>
+      </div>
+      <label class="switch"><input type="checkbox" id="themeToggle" checked onchange="toggleTheme(this.checked)"><span class="knob"></span></label>
+    </div>
+  </div>
 
   <div class="settings-group">
     <div class="settings-group-title">Defaults</div>
@@ -944,6 +961,15 @@ function loadSettings() {
   document.getElementById('vibToggle').checked = s.vibration !== false;
   document.getElementById('sndToggle').checked = s.sound !== false;
   document.getElementById('milestoneInterval').value = s.milestoneInterval !== undefined ? s.milestoneInterval : 10;
+  document.getElementById('themeToggle').checked = s.theme !== 'light';
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+}
+function toggleTheme(isDark) {
+  const theme = isDark ? 'dark' : 'light';
+  applyTheme(theme);
+  saveSetting('theme', theme);
 }
 function clearAllHistory() {
   if (!confirm('Delete ALL session history? This cannot be undone.')) return;
@@ -1890,7 +1916,13 @@ if ('serviceWorker' in navigator) {
 }
 
 // Start landing animation on load
-window.addEventListener('load', () => startLandingAnimation());
+window.addEventListener('load', () => {
+  startLandingAnimation();
+  const s = getSettings();
+  const theme = s.theme || 'dark';
+  applyTheme(theme);
+  document.getElementById('themeToggle').checked = theme === 'dark';
+});
 window.addEventListener('resize', () => {
   const canvas = document.getElementById('landingCanvas');
   if (canvas && !document.getElementById('s-landing').classList.contains('off')) {
